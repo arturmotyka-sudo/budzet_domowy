@@ -247,6 +247,12 @@ const DEFAULT_CATS = [
 const GROUPS = [['zmienne','Życie i wydatki bieżące'], ['stale','Opłaty stałe'], ['oszczednosci','Oszczędności']];
 const GROUP_SHORT = {zmienne:'Bieżące', stale:'Opłaty stałe', oszczednosci:'Oszczędności'};
 const FREQ_LABEL = {m:'co miesiąc', y:'co rok', once:'jednorazowo'};
+const REPEAT_OPTS = [['none','Nie'], ['m','Co miesiąc'], ['m2','Co 2 miesiące'], ['m3','Co kwartał'], ['m6','Co pół roku'], ['y','Co rok']];
+const EVERY_LABEL = {1:'co miesiąc', 2:'co 2 miesiące', 3:'co kwartał', 6:'co pół roku', 12:'co rok'};
+const monthDiff = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y2 - y1) * 12 + (m2 - m1); };
+const ruleKey = r => !r ? 'none' : r.freq === 'y' ? 'y' : r.freq === 'm' ? ((r.every || 1) > 1 ? 'm' + r.every : 'm') : 'none';
+const parseRepeat = k => k === 'y' ? {freq:'y'} : k === 'once' ? {freq:'once'} : {freq:'m', every:Number(String(k).slice(1)) || 1};
+const freqLabel = r => !r ? '' : r.freq === 'once' ? 'jednorazowo' : r.freq === 'y' ? 'co rok' : (EVERY_LABEL[r.every || 1] || `co ${r.every} mies.`);
 
 /* Słownik ikon: słowa kluczowe (początki słów, bez polskich znaków) → ikona. Kolejność ma znaczenie – bardziej szczegółowe wyżej. */
 const ICON_DICT = [
@@ -325,7 +331,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '2.9';
+const APP_VERSION = '3.0';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -422,7 +428,7 @@ const futureMonthsOf = m => monthKeys().filter(x => x > m);
 function ruleApplies(r, m) {
   if (r.freq === 'once') return r.target === m;
   if (m <= r.from) return false;
-  if (r.freq === 'm') return true;
+  if (r.freq === 'm') return monthDiff(r.from, m) % (r.every || 1) === 0;
   if (r.freq === 'y') return m.slice(5) === r.from.slice(5);
   return false;
 }
@@ -448,10 +454,12 @@ async function applyRuleToExisting(r) {
   for (const m of (await store.listMonths()).sort()) if (ruleApplies(r, m) && await applyRules(m, [r])) added.push(m);
   return added;
 }
-function ruleFromTx(rec, freq, extra) {
-  const r = {id:uid(), freq, from:rec.m, type:rec.type, amount:rec.amount, wallet:rec.wallet, note:rec.note || '', day:Number(rec.d.slice(8))};
+function ruleFromTx(rec, key, extra) {
+  const p = parseRepeat(key);
+  const r = {id:uid(), freq:p.freq, from:rec.m, type:rec.type, amount:rec.amount, wallet:rec.wallet, note:rec.note || '', day:Number(rec.d.slice(8))};
   if (rec.type === 'wydatek') r.cat = rec.cat;
   if (rec.type === 'przelew') r.to = rec.to;
+  if (p.every > 1) r.every = p.every;
   return Object.assign(r, extra || {});
 }
 function ruleTitle(r) {
@@ -462,7 +470,12 @@ function ruleTitle(r) {
 function ruleWhen(r) {
   if (r.freq === 'once') return 'jednorazowo: ' + monthLabel(r.target);
   if (r.freq === 'y') return 'co rok w ' + ({'01':'styczniu','02':'lutym','03':'marcu','04':'kwietniu','05':'maju','06':'czerwcu','07':'lipcu','08':'sierpniu','09':'wrześniu','10':'październiku','11':'listopadzie','12':'grudniu'})[r.from.slice(5)];
-  return 'co miesiąc od ' + monthLabel(shiftMonth(r.from, 1));
+  return freqLabel(r) + ' od ' + monthLabel(shiftMonth(r.from, r.every || 1));
+}
+function nextMonthsFor(key, from, n) {
+  const r = Object.assign({from}, parseRepeat(key)); const out = [];
+  for (let i = 1; out.length < n && i <= 36; i++) { const m = shiftMonth(from, i); if (ruleApplies(r, m)) out.push(m); }
+  return out;
 }
 
 /* ---------- calculations ---------- */
@@ -592,7 +605,7 @@ function noMonthHtml() {
   return `<div class="card center" style="padding:28px 16px"><div style="font-size:42px">🗓️</div>
   <h2 style="margin:8px 0 4px">${esc(monthLabel(S.month))}</h2>
   <p class="sub">${REPORT ? 'Brak budżetu na ten miesiąc.' : 'Budżet na ten miesiąc nie jest jeszcze utworzony.'}</p>
-  ${pr.length ? `<p class="sub">🕒 Czeka ${pr.length} ${pr.length === 1 ? 'zaplanowana pozycja' : 'zaplanowanych pozycji'} (${zl(pr.filter(r => r.type === 'wydatek').reduce((s, r) => s + r.amount, 0))})</p>` : ''}
+  ${pr.length ? `<div class="card list" style="text-align:left;margin-top:14px"><div class="sub" style="padding-top:10px">🕒 Pojawią się po utworzeniu budżetu:</div>${pr.map(r => `<div class="kv"><span>${esc(ruleTitle(r))}${r.note ? ' · ' + esc(r.note) : ''} <span class="tag n">${freqLabel(r)}</span></span><b class="${r.type === 'wplyw' ? 'pos' : 'neg'}">${r.type === 'wplyw' ? '+' : r.type === 'wydatek' ? '−' : ''}${zl(r.amount)}</b></div>`).join('')}</div>` : ''}
   ${S.readOnly ? '' : '<button class="btn" data-act="newmonth">Utwórz budżet</button>'}</div>`;
 }
 
@@ -622,10 +635,6 @@ function budgetHtml() {
   const orph = Object.entries(c.C).filter(([, v]) => v.orphan && (v.plan || v.spent));
   if (orph.length) h += `<h3>Usunięte kategorie</h3><div class="card list">${orph.map(([id, v]) => catRow({id, name:'(usunięta kategoria)', emoji:'❔'}, v)).join('')}</div>`;
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
-  if (!S.readOnly) {
-    const missing = Array.from({length:12}, (_, i) => shiftMonth(S.month, i + 1)).filter(m => !S.data.months[m]).length;
-    if (missing) h += `<button class="btn sec" style="margin-top:22px" data-act="yearahead">📅 Zaplanuj 12 miesięcy do przodu</button><span class="hint center">Utworzy brakujące budżety (${missing}) z planem i powtarzającymi się pozycjami – potem możesz je poprawiać w każdym miesiącu.</span>`;
-  }
   return h;
 }
 function carryLine() {
@@ -659,7 +668,7 @@ function txRow(t, withDate, inPlannedList) {
   const r = t.rule && S.rules[t.rule];
   let tags = '';
   if (t.planned && !inPlannedList) tags += `<span class="tag${t.type === 'wplyw' ? ' g' : ''}" style="margin:0 6px 0 0">🕒 ${t.type === 'wplyw' ? 'spodziewany' : 'zaplanowana'}</span>`;
-  if (r) tags += `<span class="tag n" style="margin:0 6px 0 0">🔁 ${FREQ_LABEL[r.freq]}</span>`;
+  if (r) tags += `<span class="tag n" style="margin:0 6px 0 0">🔁 ${freqLabel(r)}</span>`;
   const sub = (withDate ? esc(shortDay(t.d)) + ' · ' : '') + esc(i.sub) + (t.note ? ' · ' + esc(t.note) : '');
   return `<button class="tx" data-act="edittx" data-id="${esc(t.id)}"><span class="emo">${esc(i.emo)}</span><span class="cbody"><span class="cname" style="display:block">${esc(i.title)}</span><span class="sub">${tags}${sub}</span></span><span class="amtv">${i.amt}</span></button>`;
 }
@@ -733,9 +742,9 @@ function helpHtml() {
       <li>Przeniesiona kwota zwiększa (albo przy minusie zmniejsza) <b>Do rozdysponowania</b> w nowym miesiącu – widać to pod bilansem: „↪ Przeniesione z…”.</li>
       <li>Gdy poprawisz coś w poprzednim miesiącu, kolejne przeliczą się automatycznie.</li>
       <li>Jeśli stan w banku jest inny, stuknij konto i wpisz właściwą kwotę – różnica zapisze się jako <b>korekta</b> i też będzie się przenosić dalej.</li></ul>`)
-  + sec('📅 Planowanie na rok do przodu', `<ul>
-      <li>Na dole ekranu Budżet: <b>📅 Zaplanuj 12 miesięcy do przodu</b> – tworzy brakujące budżety z planem z poprzedniego miesiąca i wszystkimi powtarzającymi się wpływami i wydatkami (jako zaplanowane).</li>
-      <li>Strzałką › przejdź do dowolnego miesiąca i dodawaj lub poprawiaj pozycje – np. ubezpieczenie w marcu, przegląd w czerwcu.</li>
+  + sec('📅 Planowanie do przodu', `<ul>
+      <li>Przy każdym wpływie i wydatku wybierasz, jak ma się powtarzać (patrz „Powtarzanie”). Pozycja pojawi się sama w kolejnych budżetach jako zaplanowana.</li>
+      <li>Strzałką › przejdź do przyszłego miesiąca – zobaczysz, co się w nim pojawi, a po <b>Utwórz budżet</b> możesz dodawać i poprawiać pozycje.</li>
       <li>Zmieniając <b>plan kategorii</b> albo <b>powtarzającą się pozycję</b>, wybierasz: <b>tylko ten miesiąc</b> albo <b>ten i kolejne</b>.</li></ul>`)
   + sec('🗓️ Początek miesiąca', `<ol>
       <li>Strzałkami ‹ › u góry wybierz miesiąc i stuknij <b>Utwórz budżet</b>.</li>
@@ -760,12 +769,12 @@ function helpHtml() {
   + sec('💵 Zaplanowane (spodziewane) wpływy', `<ol>
       <li><b>+</b> → zakładka <b>Wpływ</b> → kwota i konto.</li>
       <li>Włącz <b>🕒 Spodziewany wpływ</b>.</li>
-      <li>Dla pensji ustaw <b>Powtarzaj: co miesiąc</b> – będzie się sama pojawiać w każdym nowym miesiącu.</li>
+      <li>Dla pensji ustaw <b>Powtarzaj: co miesiąc</b> – będzie się sama pojawiać w każdym nowym miesiącu. Inną kwotę w wybranym miesiącu poprawisz opcją „tylko w tym miesiącu”.</li>
       <li>Gdy pieniądze przyjdą: na liście <b>Zaplanowane</b> stuknij <b>✓ Wpłynęło</b>.</li></ol>
       <p>Spodziewany wpływ od razu zwiększa <b>Do rozdysponowania</b>, więc możesz go rozplanować z góry. Na koncie pojawi się dopiero po <b>✓ Wpłynęło</b> – konta zawsze pokazują prawdziwe pieniądze.</p>`)
   + sec('🔁 Powtarzanie i przypomnienia (ubezpieczenia, przeglądy)', `<ul>
-      <li><b>Powtarzaj: co miesiąc</b> – np. czynsz, internet, pensja. Pojawi się w każdym kolejnym budżecie jako zaplanowana.</li>
-      <li><b>Powtarzaj: co rok</b> – np. OC, przegląd auta. Wróci w tym samym miesiącu za rok jako czerwona przypominajka.</li>
+      <li>Przy dodawaniu lub edycji pozycji wybierz <b>Powtarzaj</b>: <b>co miesiąc</b> (czynsz, internet, najem), <b>co 2 miesiące</b> (np. prąd), <b>co kwartał</b>, <b>co pół roku</b> albo <b>co rok</b> (OC, przegląd auta). Pod wyborem widać, w których miesiącach się pojawi.</li>
+      <li><b>Pensja</b>: ustaw <b>co miesiąc</b>, a w miesiącu z inną kwotą (np. grudzień – wyższy podatek) zmień kwotę i wybierz <b>tylko w tym miesiącu</b>. Możesz też dodać osobną pozycję <b>co rok</b> tylko dla grudnia.</li>
       <li>Jednorazowo: otwórz istniejącą operację → <b>📅 Na następny miesiąc</b> albo <b>📅 Za rok</b>.</li>
       <li>Pozycje dodają się w chwili tworzenia budżetu na dany miesiąc. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
       <li>Przy zmianie powtarzanej operacji wybierasz: <b>tylko w tym miesiącu</b> (korekta jednorazowa) albo <b>w tym i kolejnych</b>. Przy usuwaniu – tylko tę albo też przyszłe.</li>
@@ -890,7 +899,7 @@ function openTx(o) {
   const defW = o.wallet || (wallets.find(w => w.id === lw) ? lw : wallets[0]?.id) || null;
   if (o.edit) {
     const r = o.edit.rule && S.rules[o.edit.rule];
-    S.txDraft = Object.assign({amountStr:toInput(o.edit.amount), repeat:r ? r.freq : 'none'}, clone(o.edit));
+    S.txDraft = Object.assign({amountStr:toInput(o.edit.amount), repeat:ruleKey(r)}, clone(o.edit));
   } else {
     S.txDraft = {id:null, type:o.type || 'wydatek', cat:o.cat || null, wallet:defW, to:null, amountStr:'', d:defaultDate(), note:'', planned:false, repeat:'none'};
   }
@@ -921,9 +930,8 @@ function renderTxSheet(focus) {
         <div><label class="f">Notatka</label><input id="tnote" value="${esc(t.note || '')}" placeholder="np. OC auta" maxlength="80"></div></div>`;
   const inc = t.type === 'wplyw';
   h += `<button class="toggle${t.planned ? ' on' : ''}${inc ? ' g' : ''}" data-act="tplanned"><span><b>🕒 ${inc ? 'Spodziewany wpływ' : 'Zaplanowana'}</b><span class="sub">${inc ? 'jeszcze nie wpłynął' : 'zlecenie stałe / płatność do zrobienia – na czerwono'}</span></span><span class="sw"></span></button>`;
-  h += `<label class="f">Powtarzaj</label><div class="seg">${[['none','Nie'], ['m','Co miesiąc'], ['y','Co rok']].map(([k, l]) => `<button class="${t.repeat === k ? 'on' : ''}" data-act="trepeat" data-v="${k}">${l}</button>`).join('')}</div>`;
-  if (t.repeat === 'm') h += `<span class="hint">Pojawi się jako zaplanowana w każdym kolejnym miesiącu, od ${esc(monthLabel(shiftMonth(S.month, 1)))}.</span>`;
-  if (t.repeat === 'y') h += `<span class="hint">Przypomni się jako zaplanowana w ${esc(monthLabel(shiftMonth(S.month, 12)))} i co rok w tym miesiącu.</span>`;
+  h += `<label class="f">Powtarzaj</label><div class="chips">${REPEAT_OPTS.map(([k, l]) => `<button class="chip${t.repeat === k ? ' on' : ''}" data-act="trepeat" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if (t.repeat !== 'none') { const nx = nextMonthsFor(t.repeat, S.month, 3); h += `<span class="hint">🔁 Pojawi się jako zaplanowana w: <b>${nx.map(monthLabel).join(', ')}</b>${t.repeat === 'y' ? '' : '…'} Kwotę w danym miesiącu możesz potem poprawić osobno.</span>`; }
   if (t.id && orig && orig.rule && S.rules[orig.rule] && t.repeat !== 'none') h += `<span class="hint">Zmiany kwoty, kategorii czy konta obejmą też kolejne miesiące.</span>`;
   h += `<button class="btn" data-act="tsave">${t.id ? 'Zapisz zmiany' : 'Dodaj'}</button>`;
   if (t.id) {
@@ -985,7 +993,7 @@ async function openNewMonth() {
   else h += `<p class="sub">Plan kategorii ustawisz po utworzeniu – stuknij kategorię, żeby wpisać kwotę.</p>`;
   if (pr.length) {
     h += `<label class="f">🕒 Zostaną dodane jako zaplanowane</label><div class="card list">`;
-    for (const r of pr) h += `<div class="kv"><span>${esc(ruleTitle(r))}${r.note ? ' · ' + esc(r.note) : ''} <span class="tag n">${FREQ_LABEL[r.freq]}</span></span><b class="${r.type === 'wplyw' ? 'pos' : 'neg'}">${r.type === 'wplyw' ? '+' : r.type === 'wydatek' ? '−' : ''}${zl(r.amount)}</b></div>`;
+    for (const r of pr) h += `<div class="kv"><span>${esc(ruleTitle(r))}${r.note ? ' · ' + esc(r.note) : ''} <span class="tag n">${freqLabel(r)}</span></span><b class="${r.type === 'wplyw' ? 'pos' : 'neg'}">${r.type === 'wplyw' ? '+' : r.type === 'wydatek' ? '−' : ''}${zl(r.amount)}</b></div>`;
     h += `</div>`;
   }
   h += `<button class="btn" data-act="nmcreate">Utwórz budżet</button>`;
@@ -1044,7 +1052,7 @@ async function exportXlsx() {
     const r = t.rule && S.rules[t.rule];
     ops.push([t.d, t.type === 'wplyw' ? 'Wpływ' : t.type === 'przelew' ? 'Przelew' : 'Wydatek',
       t.type === 'wydatek' ? catName(t.cat) : '', walletName(t.wallet), t.type === 'przelew' ? walletName(t.to) : '',
-      (t.type === 'wydatek' ? -1 : 1) * t.amount / 100, t.planned ? 'zaplanowana' : '', r ? FREQ_LABEL[r.freq] : '', t.note || '']);
+      (t.type === 'wydatek' ? -1 : 1) * t.amount / 100, t.planned ? 'zaplanowana' : '', r ? freqLabel(r) : '', t.note || '']);
     rowsMeta.push(t);
   }
   const money = ws => { for (const k in ws) if (k[0] !== '!' && ws[k].t === 'n') ws[k].z = '#,##0.00 "zł"'; return ws; };
@@ -1253,22 +1261,6 @@ document.addEventListener('click', async e => {
       break;
     }
 
-    case 'yearahead': {
-      const list = Array.from({length:12}, (_, i) => shiftMonth(S.month, i + 1)).filter(m => !S.data.months[m]);
-      if (!list.length) return;
-      if (!(await ask(`Utworzyć budżety: ${monthLabel(list[0])} – ${monthLabel(list[list.length - 1])} (${list.length})? Plan skopiuje się z poprzedniego miesiąca, salda przeniosą się automatycznie, a powtarzające się pozycje dodadzą jako zaplanowane.`, 'Utwórz', false))) return;
-      let added = 0;
-      await write(store.batch(async () => {
-        for (const m of list) {
-          const p = prevMonthOf(m) || S.month;
-          const plan = clone((S.data.months[p] || {}).plan || {});
-          await store.saveMonth(m, {carry:true, adj:{}, plan, created:Date.now()});
-          added += await applyRules(m, Object.values(S.rules || {}));
-        }
-      }));
-      toast(`Utworzono ${list.length} miesięcy${added ? ` · ${added} zaplanowanych pozycji` : ''}`);
-      break;
-    }
     case 'catemo': { const c = catById(ds.id); if (c) openEmoPicker(c.name, c.emoji, {kind:'emo', direct:ds.id}); break; }
     case 'wallet': openWallet(ds.id); break;
     case 'wsave': {
@@ -1302,10 +1294,10 @@ document.addEventListener('click', async e => {
       const oldRule = t.rule && S.rules[t.rule] ? S.rules[t.rule] : null;
       const futureOf = r => store.allTx().filter(x => x.rule === r.id && x.m > S.month && x.planned);
       let newRule = null, scopeAll = false, msg = !t.id ? 'Dodano' : 'Zapisano';
-      if (oldRule && t.repeat === oldRule.freq && orig) {
+      if (oldRule && t.repeat === ruleKey(oldRule) && orig) {
         const changed = ['amount','cat','wallet','to','note','type'].some(k => (orig[k] || '') !== (rec[k] || '')) || orig.d.slice(8) !== rec.d.slice(8);
         if (changed) {
-          const ch = await choose('Ta pozycja powtarza się ' + FREQ_LABEL[oldRule.freq] + '. Zmienić:', [{label:`Tylko w: ${monthLabel(S.month)}`}, {label:'W tym i kolejnych miesiącach'}]);
+          const ch = await choose('Ta pozycja powtarza się ' + freqLabel(oldRule) + '. Zmienić:', [{label:`Tylko w: ${monthLabel(S.month)}`}, {label:'W tym i kolejnych miesiącach'}]);
           if (ch < 0) return;
           scopeAll = ch === 1;
         }
@@ -1317,7 +1309,7 @@ document.addEventListener('click', async e => {
           if (t.repeat === 'none') {
             for (const x of futureOf(oldRule)) await store.deleteTx(x.id);
             await store.deleteRule(oldRule.id); msg = 'Zapisano · powtarzanie wyłączone';
-          } else if (t.repeat !== oldRule.freq) {
+          } else if (t.repeat !== ruleKey(oldRule)) {
             const upd = ruleFromTx(rec, t.repeat, {id:oldRule.id, from:oldRule.from});
             for (const x of futureOf(oldRule)) if (!ruleApplies(upd, x.m)) await store.deleteTx(x.id);
             await store.saveRule(upd); rec.rule = oldRule.id; newRule = upd;
@@ -1361,7 +1353,7 @@ document.addEventListener('click', async e => {
     case 'tdel': {
       const t = S.txDraft, r = t.rule && S.rules[t.rule];
       if (r) {
-        const ch = await choose('Ta operacja powtarza się ' + FREQ_LABEL[r.freq] + '. Co usunąć?', [{label:'Tylko tę', cls:'danger'}, {label:'Tę i przyszłe powtórzenia', cls:'danger'}]);
+        const ch = await choose('Ta operacja powtarza się ' + freqLabel(r) + '. Co usunąć?', [{label:'Tylko tę', cls:'danger'}, {label:'Tę i przyszłe powtórzenia', cls:'danger'}]);
         if (ch < 0) return;
         if (ch === 1) {
           closeSheet();

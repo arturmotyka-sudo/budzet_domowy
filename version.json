@@ -1,7 +1,10 @@
 {
-  "version": "2.9",
+  "version": "3.0",
   "date": "2026-11-18",
   "changes": [
-    "Napis „Pozostało do rozdysponowania” nad kwotą, w kolorze zielonym – bez powtórzenia pod kwotą"
+    "Powtarzanie: co miesiąc, co 2 miesiące, co kwartał, co pół roku, co rok – wybierasz przy każdej pozycji",
+    "Podgląd, w których miesiącach pozycja się pojawi",
+    "W przyszłym miesiącu widać listę pozycji, które się w nim pojawią",
+    "Usunięty przycisk „Zaplanuj 12 miesięcy do przodu”"
   ]
 }
