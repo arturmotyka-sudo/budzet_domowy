@@ -1,6 +1,6 @@
 # Budżet domowy – aplikacja na telefon
 
-**Wersja 3.1** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
+**Wersja 3.2** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -28,7 +28,7 @@ Stare pliki `icon-192.png`, `icon-512.png`, `icon-maskable.png` nie są już uż
 
 **Na telefonie (Android):**
 1. Otwórz ten adres w **Chrome** → menu **⋮** → **Zainstaluj aplikację**.
-2. Przy pierwszym uruchomieniu ustaw **PIN** (4–6 cyfr), potem konta i kategorie, a na koniec utwórz pierwszy miesiąc – kolejne 12 utworzą się same.
+2. Przy pierwszym uruchomieniu ustaw **PIN** (4–6 cyfr), potem konta i kategorie, a na koniec utwórz pierwszy miesiąc – kolejne 13 utworzą się same.
 
 ## Aktualizacja (dane zostają)
 
@@ -49,8 +49,8 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 - **Zaplanowane płatności** (czerwone, np. zlecenia stałe) i **spodziewane wpływy** – rezerwują pieniądze w budżecie; na koncie zmieniają stan dopiero po **✓ Zapłacone / ✓ Wpłynęło**.
 - **Powtarzanie** wybierane przy każdej pozycji: co miesiąc, co 2 miesiące, co kwartał, co pół roku, co rok (pensja, czynsz, prąd, ubezpieczenie, przegląd), z korektą kwoty w pojedynczym miesiącu; do tego jednorazowe kopiowanie na następny miesiąc lub za rok.
 - **Przenoszenie salda** – stan kont z końca miesiąca (także minus) sam przechodzi na kolejny; możliwa korekta, gdy stan w banku jest inny.
-- **Budżety na 13 miesięcy** – po założeniu pierwszego miesiąca tworzą się same (bieżący + 12 kolejnych).
-- **Korekty** – zmiany planu i powtarzających się pozycji: tylko ten miesiąc albo ten i kolejne.
+- **Budżety na 13 miesięcy do przodu** – tworzą się same; każdy nowy miesiąc powstaje na wzór tego samego miesiąca rok wcześniej (plan, wpływy, zaplanowane wydatki, poprawki „tylko w tym miesiącu”).
+- **Korekty** – zmiany planu i powtarzających się pozycji: tylko ten miesiąc, tu i co rok w tym miesiącu, albo ten i wszystkie kolejne.
 - **Ikony kategorii** dobierane automatycznie po nazwie (słownik ~60 ikon), z możliwością zmiany.
 - **Raport** – jeden plik HTML do wysłania mailem: na komputerze podgląd całego budżetu, na telefonie kopia zapasowa (**Wczytaj z pliku**).
 - **Excel** – podsumowanie miesiąca i lista operacji.
@@ -64,6 +64,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **3.2** – budżety na 13 miesięcy do przodu; nowy miesiąc powstaje na wzór tego samego miesiąca rok wcześniej (plan, wpływy, zaplanowane wydatki, poprawki); przy zmianach nowa opcja „tu i co rok w tym miesiącu”.
 - **3.1** – budżety tworzą się same na bieżący miesiąc i 12 kolejnych (saldo, plan, powtarzające się pozycje); nowy miesiąc dobudowuje się automatycznie.
 - **3.0** – powtarzanie co miesiąc / co 2 miesiące / co kwartał / co pół roku / co rok, podgląd miesięcy, lista pozycji w przyszłym miesiącu; usunięty przycisk „12 miesięcy do przodu”.
 - **2.9** – napis „Pozostało do rozdysponowania” nad kwotą (zielony), bez powtórzenia pod kwotą.

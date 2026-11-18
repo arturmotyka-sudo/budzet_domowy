@@ -1,8 +1,9 @@
 {
-  "version": "3.1",
+  "version": "3.2",
   "date": "2026-11-18",
   "changes": [
-    "Budżety tworzą się same na bieżący miesiąc i 12 kolejnych – z saldem, planem i powtarzającymi się pozycjami",
-    "Nowy miesiąc dobudowuje się automatycznie"
+    "Budżety na 13 miesięcy do przodu (np. do grudnia 2027)",
+    "Nowy miesiąc na wzór tego samego miesiąca rok wcześniej – plan, wpływy, zaplanowane wydatki i poprawki „tylko w tym miesiącu”",
+    "Przy zmianie pozycji lub planu nowa opcja „tu i co rok w tym miesiącu”"
   ]
 }

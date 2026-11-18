@@ -331,7 +331,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -439,12 +439,19 @@ function txFromRule(r, m) {
   if (r.type === 'przelew') t.to = r.to;
   return t;
 }
-async function applyRules(m, rules) {
+async function applyRules(m, rules, lyTx) {
   const existing = await store.getTx(m); let n = 0;
   for (const r of rules) {
     if (!ruleApplies(r, m)) continue;
     if (r.freq !== 'once' && existing.some(t => t.rule === r.id)) continue;
-    await store.saveTx(txFromRule(r, m)); n++;
+    const t = txFromRule(r, m);
+    // korekta „tylko w tym miesiącu” sprzed roku przechodzi na ten sam miesiąc w kolejnym roku
+    const ov = (lyTx || []).find(x => x.rule === r.id && x.override);
+    if (ov) {
+      Object.assign(t, {type:ov.type, amount:ov.amount, wallet:ov.wallet, note:ov.note || '', d:clampDay(m, Number(ov.d.slice(8))), override:true});
+      delete t.cat; delete t.to; if (ov.type === 'wydatek') t.cat = ov.cat; if (ov.type === 'przelew') t.to = ov.to;
+    }
+    await store.saveTx(t); n++;
     if (r.freq === 'once') await store.deleteRule(r.id);
   }
   return n;
@@ -455,7 +462,7 @@ async function applyRuleToExisting(r) {
   return added;
 }
 /* Budżety tworzą się same: bieżący miesiąc + 12 kolejnych (po założeniu pierwszego miesiąca). */
-const AHEAD = 12;
+const AHEAD = 13;
 let ensuring = false;
 async function ensureAhead(silent) {
   if (REPORT || ensuring || !S.data || !S.settings) return 0;
@@ -468,10 +475,19 @@ async function ensureAhead(silent) {
   try {
     await store.batch(async () => {
       for (const m of missing) {
+        const ly = shiftMonth(m, -12), lyDoc = S.data.months[ly];
         const p = prevMonthOf(m);
-        const plan = clone(((p && S.data.months[p]) || {}).plan || {});
-        await store.saveMonth(m, {carry:true, adj:{}, plan, created:Date.now(), auto:true});
-        await applyRules(m, Object.values(S.rules || {}));
+        const plan = clone(((lyDoc) || (p && S.data.months[p]) || {}).plan || {});
+        await store.saveMonth(m, {carry:true, adj:{}, plan, created:Date.now(), auto:true, base: lyDoc ? ly : (p || null)});
+        const lyTx = lyDoc ? store.allTx().filter(t => t.m === ly) : [];
+        await applyRules(m, Object.values(S.rules || {}), lyTx);
+        // jednorazowe wpływy i zaplanowane wydatki sprzed roku – jako zaplanowane
+        for (const t of lyTx) {
+          if (t.rule || !(t.type === 'wplyw' || t.planned || t.wasPlanned)) continue;
+          const c = clone(t); c.id = uid(); c.m = m; c.d = clampDay(m, Number(t.d.slice(8))); c.planned = true; c.ts = Date.now();
+          delete c.wasPlanned; delete c.override;
+          await store.saveTx(c);
+        }
         made++;
       }
     });
@@ -492,6 +508,7 @@ function ruleTitle(r) {
   if (r.type === 'przelew') return walletName(r.wallet) + ' → ' + walletName(r.to);
   return catName(r.cat);
 }
+const MONTH_LOC = {'01':'styczniu','02':'lutym','03':'marcu','04':'kwietniu','05':'maju','06':'czerwcu','07':'lipcu','08':'sierpniu','09':'wrześniu','10':'październiku','11':'listopadzie','12':'grudniu'};
 function ruleWhen(r) {
   if (r.freq === 'once') return 'jednorazowo: ' + monthLabel(r.target);
   if (r.freq === 'y') return 'co rok w ' + ({'01':'styczniu','02':'lutym','03':'marcu','04':'kwietniu','05':'maju','06':'czerwcu','07':'lipcu','08':'sierpniu','09':'wrześniu','10':'październiku','11':'listopadzie','12':'grudniu'})[r.from.slice(5)];
@@ -768,12 +785,14 @@ function helpHtml() {
       <li>Gdy poprawisz coś w poprzednim miesiącu, kolejne przeliczą się automatycznie.</li>
       <li>Jeśli stan w banku jest inny, stuknij konto i wpisz właściwą kwotę – różnica zapisze się jako <b>korekta</b> i też będzie się przenosić dalej.</li></ul>`)
   + sec('📅 Planowanie do przodu', `<ul>
-      <li>Budżety <b>tworzą się same</b> na bieżący miesiąc i <b>12 kolejnych</b> – z przeniesionym saldem, planem i powtarzającymi się pozycjami. Gdy zaczyna się nowy miesiąc, kolejny dobudowuje się automatycznie.</li>
+      <li>Budżety <b>tworzą się same</b> na bieżący miesiąc i <b>13 kolejnych</b> (np. w listopadzie 2026 – do grudnia 2027). Gdy zaczyna się nowy miesiąc, kolejny dobudowuje się automatycznie.</li>
+      <li>Nowy miesiąc powstaje <b>na wzór tego samego miesiąca rok wcześniej</b>: grudzień 2027 dostaje plan, wpływy i zaplanowane wydatki z grudnia 2026 (jednorazowe – jako zaplanowane). Kwota poprawiona „tylko w tym miesiącu” (np. grudniowa pensja) też przechodzi na kolejny rok.</li>
       <li>Przy każdym wpływie i wydatku wybierasz, jak ma się powtarzać (patrz „Powtarzanie”) – pozycja od razu pojawi się we wszystkich pasujących miesiącach.</li>
       <li>Strzałką › przejdź do dowolnego miesiąca i dodawaj albo poprawiaj pozycje.</li>
-      <li>Zmieniając <b>plan kategorii</b> albo <b>powtarzającą się pozycję</b>, wybierasz: <b>tylko ten miesiąc</b> albo <b>ten i kolejne</b>.</li></ul>`)
+      <li>Zmieniając <b>plan kategorii</b> albo <b>powtarzającą się pozycję</b>, wybierasz: <b>tylko ten miesiąc</b>, <b>tu i co rok w tym miesiącu</b> albo <b>ten i wszystkie kolejne</b>.</li>
+      <li>Jednorazową pozycję przeniesiesz na ten sam miesiąc za rok przyciskiem <b>📅 Za rok</b> (w edycji pozycji).</li></ul>`)
   + sec('🗓️ Początek miesiąca', `<ol>
-      <li>Tylko <b>pierwszy miesiąc</b> tworzysz ręcznie (<b>Utwórz budżet</b>) – kolejne 12 utworzą się same.</li>
+      <li>Tylko <b>pierwszy miesiąc</b> tworzysz ręcznie (<b>Utwórz budżet</b>) – kolejne 13 utworzą się same.</li>
       <li><b>Środki na start</b> przenoszą się same ze stanu kont z końca poprzedniego miesiąca. Zmień je tylko, jeśli stan w banku jest inny. W pierwszym miesiącu wpisujesz je ręcznie.</li>
       <li>Zaznacz <b>Skopiuj plan</b>, jeśli chcesz takie same kwoty jak w poprzednim miesiącu.</li>
       <li>Płatności cykliczne i przypomnienia dodadzą się same jako zaplanowane (czerwone).</li>
@@ -802,8 +821,8 @@ function helpHtml() {
       <li>Przy dodawaniu lub edycji pozycji wybierz <b>Powtarzaj</b>: <b>co miesiąc</b> (czynsz, internet, najem), <b>co 2 miesiące</b> (np. prąd), <b>co kwartał</b>, <b>co pół roku</b> albo <b>co rok</b> (OC, przegląd auta). Pod wyborem widać, w których miesiącach się pojawi.</li>
       <li><b>Pensja</b>: ustaw <b>co miesiąc</b>, a w miesiącu z inną kwotą (np. grudzień – wyższy podatek) zmień kwotę i wybierz <b>tylko w tym miesiącu</b>. Możesz też dodać osobną pozycję <b>co rok</b> tylko dla grudnia.</li>
       <li>Jednorazowo: otwórz istniejącą operację → <b>📅 Na następny miesiąc</b> albo <b>📅 Za rok</b>.</li>
-      <li>Pozycje dodają się od razu do wszystkich utworzonych miesięcy (13 do przodu), a do dalszych – gdy się utworzą. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
-      <li>Przy zmianie powtarzanej operacji wybierasz: <b>tylko w tym miesiącu</b> (korekta jednorazowa) albo <b>w tym i kolejnych</b>. Przy usuwaniu – tylko tę albo też przyszłe.</li>
+      <li>Pozycje dodają się od razu do wszystkich utworzonych miesięcy, a do dalszych – gdy się utworzą (z kwotą z tego samego miesiąca sprzed roku, jeśli była tam poprawiona). Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
+      <li>Przy zmianie powtarzanej operacji wybierasz: <b>tylko w tym miesiącu</b>, <b>tu i co rok w tym miesiącu</b> (np. grudniowa pensja z wyższym podatkiem) albo <b>w tym i wszystkich kolejnych</b>. Przy usuwaniu – tylko tę albo też przyszłe.</li>
       <li>Powtarzaj: <b>Nie</b> w istniejącej pozycji wyłącza powtarzanie i usuwa jej zaplanowane kopie z przyszłych miesięcy.</li></ul>`)
   + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. Ikonę zmienisz też prosto z ekranu Budżet: stuknij kategorię, a potem jej ikonę w nagłówku. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>`)
   + sec('🔄 Przelew między kontami', `<p><b>+</b> → zakładka <b>Przelew</b> → z którego konta na które. Przelew zmienia tylko stan kont, nie rusza kategorii ani bilansu.</p>`)
@@ -988,6 +1007,7 @@ function recFromDraft() {
   if (t.type === 'wydatek') rec.cat = t.cat;
   if (t.type === 'przelew') rec.to = t.to;
   if (t.planned) rec.planned = true;
+  if (t.wasPlanned && !t.planned) rec.wasPlanned = true;
   return rec;
 }
 
@@ -1227,7 +1247,7 @@ document.addEventListener('click', async e => {
     case 'clearmonth': {
       const m = S.month, n = S.tx.length;
       const ch = await choose(`Wyczyścić ${monthLabel(m)}? Tego nie da się cofnąć – jeśli chcesz mieć kopię, najpierw wyślij raport.`,
-        [{label:`Usuń operacje (${n}) – zostaw plan i środki`, cls:'danger'}, {label:(m >= CUR && m <= shiftMonth(CUR, AHEAD)) ? 'Wyczyść cały miesiąc i utwórz od nowa' : 'Usuń cały miesiąc', cls:'danger'}]);
+        [{label:`Usuń operacje (${n}) – zostaw plan i środki`, cls:'danger'}, {label:(m <= shiftMonth(CUR, AHEAD)) ? 'Wyczyść cały miesiąc i utwórz od nowa' : 'Usuń cały miesiąc', cls:'danger'}]);
       if (ch < 0) return;
       const whole = ch === 1;
       const run = async () => {
@@ -1280,9 +1300,14 @@ document.addEventListener('click', async e => {
       const cid = S.sheet.id, m = S.month, fut = futureMonthsOf(m);
       let targets = [m];
       if (fut.length && v !== S.sheet.basePlan) {
-        const ch = await choose(`Zmienić plan „${catName(cid)}” na ${zl(v)}:`, [{label:`Tylko ${monthLabel(m)}`}, {label:`${monthLabel(m)} i kolejne (${fut.length})`}]);
+        const futY = fut.filter(k => k.slice(5) === m.slice(5));
+        const opts = [{label:`Tylko ${monthLabel(m)}`}];
+        if (futY.length) opts.push({label:`Tu i co rok w ${MONTH_LOC[m.slice(5)]}`});
+        opts.push({label:`${monthLabel(m)} i wszystkie kolejne (${fut.length})`});
+        const ch = await choose(`Zmienić plan „${catName(cid)}” na ${zl(v)}:`, opts);
         if (ch < 0) return;
-        if (ch === 1) targets = [m, ...fut];
+        if (ch === opts.length - 1 && ch > 0) targets = [m, ...fut];
+        else if (ch === 1 && futY.length) targets = [m, ...futY];
       }
       closeSheet();
       await write(store.batch(async () => { for (const k of targets) { const md = clone(S.data.months[k]); md.plan = md.plan || {}; if (v) md.plan[cid] = v; else delete md.plan[cid]; await store.saveMonth(k, md); } }),
@@ -1302,7 +1327,7 @@ document.addEventListener('click', async e => {
       break;
     }
 
-    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
+    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; n.wasPlanned = true; await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
 
     case 'addtx':
       if (!S.settings.wallets.length) { toast('Najpierw dodaj konto w Ustawieniach'); return; }
@@ -1322,13 +1347,13 @@ document.addEventListener('click', async e => {
       const orig = t.id ? S.tx.find(z => z.id === t.id) : null;
       const oldRule = t.rule && S.rules[t.rule] ? S.rules[t.rule] : null;
       const futureOf = r => store.allTx().filter(x => x.rule === r.id && x.m > S.month && x.planned);
-      let newRule = null, scopeAll = false, msg = !t.id ? 'Dodano' : 'Zapisano';
+      let newRule = null, scopeAll = false, scopeYear = false, msg = !t.id ? 'Dodano' : 'Zapisano';
       if (oldRule && t.repeat === ruleKey(oldRule) && orig) {
         const changed = ['amount','cat','wallet','to','note','type'].some(k => (orig[k] || '') !== (rec[k] || '')) || orig.d.slice(8) !== rec.d.slice(8);
         if (changed) {
-          const ch = await choose('Ta pozycja powtarza się ' + freqLabel(oldRule) + '. Zmienić:', [{label:`Tylko w: ${monthLabel(S.month)}`}, {label:'W tym i kolejnych miesiącach'}]);
+          const ch = await choose('Ta pozycja powtarza się ' + freqLabel(oldRule) + '. Zmienić:', [{label:`Tylko w: ${monthLabel(S.month)}`}, {label:`Tu i co rok w ${MONTH_LOC[S.month.slice(5)]}`}, {label:'W tym i wszystkich kolejnych miesiącach'}]);
           if (ch < 0) return;
-          scopeAll = ch === 1;
+          scopeAll = ch === 2; scopeYear = ch === 1;
         }
       }
       lsSet('budzet-lastWallet', t.wallet);
@@ -1344,13 +1369,26 @@ document.addEventListener('click', async e => {
             await store.saveRule(upd); rec.rule = oldRule.id; newRule = upd;
           } else {
             rec.rule = oldRule.id;
+            const changedNow = orig && (['amount','cat','wallet','to','note','type'].some(k => (orig[k] || '') !== (rec[k] || '')) || orig.d.slice(8) !== rec.d.slice(8));
+            if (scopeAll) delete rec.override; else if (changedNow) rec.override = true; else if (orig && orig.override) rec.override = true;
+            if (scopeYear) {
+              let n = 0; const ms = [];
+              for (const x of futureOf(oldRule)) {
+                if (x.m.slice(5) !== S.month.slice(5)) continue;
+                ms.push(x.m);
+                const y = Object.assign({}, x, {type:rec.type, amount:rec.amount, wallet:rec.wallet, note:rec.note, d:clampDay(x.m, Number(rec.d.slice(8))), override:true});
+                delete y.cat; delete y.to; if (rec.type === 'wydatek') y.cat = rec.cat; if (rec.type === 'przelew') y.to = rec.to;
+                await store.saveTx(y); n++;
+              }
+              msg = n ? `Zapisano tu i w: ${ms.map(monthLabel).join(', ')}` : 'Zapisano – przejdzie też na ten miesiąc w kolejnym roku';
+            }
             if (scopeAll) {
               const upd = ruleFromTx(rec, t.repeat, {id:oldRule.id, from:oldRule.from});
               await store.saveRule(upd);
               let n = 0;
               for (const x of futureOf(oldRule)) {
                 const y = Object.assign({}, x, {type:rec.type, amount:rec.amount, wallet:rec.wallet, note:rec.note, d:clampDay(x.m, upd.day)});
-                delete y.cat; delete y.to; if (rec.type === 'wydatek') y.cat = rec.cat; if (rec.type === 'przelew') y.to = rec.to;
+                delete y.cat; delete y.to; delete y.override; if (rec.type === 'wydatek') y.cat = rec.cat; if (rec.type === 'przelew') y.to = rec.to;
                 await store.saveTx(y); n++;
               }
               msg = n ? `Zapisano tu i w ${n} kolejnych miesiącach` : 'Zapisano (także dla kolejnych miesięcy)';
