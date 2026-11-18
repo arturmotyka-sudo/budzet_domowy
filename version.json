@@ -1,10 +1,8 @@
 {
-  "version": "3.0",
+  "version": "3.1",
   "date": "2026-11-18",
   "changes": [
-    "Powtarzanie: co miesiąc, co 2 miesiące, co kwartał, co pół roku, co rok – wybierasz przy każdej pozycji",
-    "Podgląd, w których miesiącach pozycja się pojawi",
-    "W przyszłym miesiącu widać listę pozycji, które się w nim pojawią",
-    "Usunięty przycisk „Zaplanuj 12 miesięcy do przodu”"
+    "Budżety tworzą się same na bieżący miesiąc i 12 kolejnych – z saldem, planem i powtarzającymi się pozycjami",
+    "Nowy miesiąc dobudowuje się automatycznie"
   ]
 }

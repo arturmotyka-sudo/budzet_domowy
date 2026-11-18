@@ -331,7 +331,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.0';
+const APP_VERSION = '3.1';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -453,6 +453,31 @@ async function applyRuleToExisting(r) {
   const added = [];
   for (const m of (await store.listMonths()).sort()) if (ruleApplies(r, m) && await applyRules(m, [r])) added.push(m);
   return added;
+}
+/* Budżety tworzą się same: bieżący miesiąc + 12 kolejnych (po założeniu pierwszego miesiąca). */
+const AHEAD = 12;
+let ensuring = false;
+async function ensureAhead(silent) {
+  if (REPORT || ensuring || !S.data || !S.settings) return 0;
+  const keys = monthKeys(); if (!keys.length) return 0;
+  const target = shiftMonth(CUR, AHEAD);
+  const missing = [];
+  for (let m = keys[0]; m <= target; m = shiftMonth(m, 1)) if (!S.data.months[m]) missing.push(m);
+  if (!missing.length) return 0;
+  ensuring = true; let made = 0;
+  try {
+    await store.batch(async () => {
+      for (const m of missing) {
+        const p = prevMonthOf(m);
+        const plan = clone(((p && S.data.months[p]) || {}).plan || {});
+        await store.saveMonth(m, {carry:true, adj:{}, plan, created:Date.now(), auto:true});
+        await applyRules(m, Object.values(S.rules || {}));
+        made++;
+      }
+    });
+  } finally { ensuring = false; }
+  if (made && !silent) toast(`Budżety gotowe do: ${monthLabel(target)}`);
+  return made;
 }
 function ruleFromTx(rec, key, extra) {
   const p = parseRepeat(key);
@@ -743,11 +768,12 @@ function helpHtml() {
       <li>Gdy poprawisz coś w poprzednim miesiącu, kolejne przeliczą się automatycznie.</li>
       <li>Jeśli stan w banku jest inny, stuknij konto i wpisz właściwą kwotę – różnica zapisze się jako <b>korekta</b> i też będzie się przenosić dalej.</li></ul>`)
   + sec('📅 Planowanie do przodu', `<ul>
-      <li>Przy każdym wpływie i wydatku wybierasz, jak ma się powtarzać (patrz „Powtarzanie”). Pozycja pojawi się sama w kolejnych budżetach jako zaplanowana.</li>
-      <li>Strzałką › przejdź do przyszłego miesiąca – zobaczysz, co się w nim pojawi, a po <b>Utwórz budżet</b> możesz dodawać i poprawiać pozycje.</li>
+      <li>Budżety <b>tworzą się same</b> na bieżący miesiąc i <b>12 kolejnych</b> – z przeniesionym saldem, planem i powtarzającymi się pozycjami. Gdy zaczyna się nowy miesiąc, kolejny dobudowuje się automatycznie.</li>
+      <li>Przy każdym wpływie i wydatku wybierasz, jak ma się powtarzać (patrz „Powtarzanie”) – pozycja od razu pojawi się we wszystkich pasujących miesiącach.</li>
+      <li>Strzałką › przejdź do dowolnego miesiąca i dodawaj albo poprawiaj pozycje.</li>
       <li>Zmieniając <b>plan kategorii</b> albo <b>powtarzającą się pozycję</b>, wybierasz: <b>tylko ten miesiąc</b> albo <b>ten i kolejne</b>.</li></ul>`)
   + sec('🗓️ Początek miesiąca', `<ol>
-      <li>Strzałkami ‹ › u góry wybierz miesiąc i stuknij <b>Utwórz budżet</b>.</li>
+      <li>Tylko <b>pierwszy miesiąc</b> tworzysz ręcznie (<b>Utwórz budżet</b>) – kolejne 12 utworzą się same.</li>
       <li><b>Środki na start</b> przenoszą się same ze stanu kont z końca poprzedniego miesiąca. Zmień je tylko, jeśli stan w banku jest inny. W pierwszym miesiącu wpisujesz je ręcznie.</li>
       <li>Zaznacz <b>Skopiuj plan</b>, jeśli chcesz takie same kwoty jak w poprzednim miesiącu.</li>
       <li>Płatności cykliczne i przypomnienia dodadzą się same jako zaplanowane (czerwone).</li>
@@ -776,13 +802,13 @@ function helpHtml() {
       <li>Przy dodawaniu lub edycji pozycji wybierz <b>Powtarzaj</b>: <b>co miesiąc</b> (czynsz, internet, najem), <b>co 2 miesiące</b> (np. prąd), <b>co kwartał</b>, <b>co pół roku</b> albo <b>co rok</b> (OC, przegląd auta). Pod wyborem widać, w których miesiącach się pojawi.</li>
       <li><b>Pensja</b>: ustaw <b>co miesiąc</b>, a w miesiącu z inną kwotą (np. grudzień – wyższy podatek) zmień kwotę i wybierz <b>tylko w tym miesiącu</b>. Możesz też dodać osobną pozycję <b>co rok</b> tylko dla grudnia.</li>
       <li>Jednorazowo: otwórz istniejącą operację → <b>📅 Na następny miesiąc</b> albo <b>📅 Za rok</b>.</li>
-      <li>Pozycje dodają się w chwili tworzenia budżetu na dany miesiąc. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
+      <li>Pozycje dodają się od razu do wszystkich utworzonych miesięcy (13 do przodu), a do dalszych – gdy się utworzą. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
       <li>Przy zmianie powtarzanej operacji wybierasz: <b>tylko w tym miesiącu</b> (korekta jednorazowa) albo <b>w tym i kolejnych</b>. Przy usuwaniu – tylko tę albo też przyszłe.</li>
       <li>Powtarzaj: <b>Nie</b> w istniejącej pozycji wyłącza powtarzanie i usuwa jej zaplanowane kopie z przyszłych miesięcy.</li></ul>`)
   + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. Ikonę zmienisz też prosto z ekranu Budżet: stuknij kategorię, a potem jej ikonę w nagłówku. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>`)
   + sec('🔄 Przelew między kontami', `<p><b>+</b> → zakładka <b>Przelew</b> → z którego konta na które. Przelew zmienia tylko stan kont, nie rusza kategorii ani bilansu.</p>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
-  + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>usuń cały miesiąc</b> (wraca ekran „Utwórz budżet”). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
+  + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
       <li>Na komputerze otwórz załącznik dwuklikiem – w przeglądarce widać cały budżet (wszystkie miesiące) w trybie podglądu.</li>
@@ -1077,6 +1103,7 @@ async function importFile(file) {
   if (store.hasData() && !(await ask(`Zastąpić obecne dane danymi z pliku (${nM} mies., ${nTx} operacji, z ${dateTimeLabel(data.exportedAt || Date.now())})?`, 'Zastąp'))) return;
   S.draft = null; S.draftDirty = false;
   await write(store.replaceAll(data), 'Dane wczytane');
+  await ensureAhead(true);
   S.tab = 'budzet'; render();
 }
 
@@ -1200,12 +1227,13 @@ document.addEventListener('click', async e => {
     case 'clearmonth': {
       const m = S.month, n = S.tx.length;
       const ch = await choose(`Wyczyścić ${monthLabel(m)}? Tego nie da się cofnąć – jeśli chcesz mieć kopię, najpierw wyślij raport.`,
-        [{label:`Usuń operacje (${n}) – zostaw plan i środki`, cls:'danger'}, {label:'Usuń cały miesiąc', cls:'danger'}]);
+        [{label:`Usuń operacje (${n}) – zostaw plan i środki`, cls:'danger'}, {label:(m >= CUR && m <= shiftMonth(CUR, AHEAD)) ? 'Wyczyść cały miesiąc i utwórz od nowa' : 'Usuń cały miesiąc', cls:'danger'}]);
       if (ch < 0) return;
       const whole = ch === 1;
       const run = async () => {
         const removed = await store.clearMonth(m, whole);
-        toast(whole ? `Usunięto ${monthLabel(m)}` : `Usunięto ${removed} operacji`);
+        let re = 0; if (whole) re = await ensureAhead(true);
+        toast(whole ? (re ? `${monthLabel(m)} utworzony od nowa` : `Usunięto ${monthLabel(m)}`) : `Usunięto ${removed} operacji`);
         S.tab = 'budzet'; render();
       };
       if (pinSupported() && pinRec()) lockOpen('confirm', {info:(whole ? 'Usunięcie całego miesiąca: ' : 'Usunięcie operacji: ') + monthLabel(m), onOk:run});
@@ -1239,7 +1267,8 @@ document.addEventListener('click', async e => {
       const doc = carry ? {carry:true, adj, plan, created:Date.now()} : {carry:false, start, plan, created:Date.now()};
       if (await write(store.saveMonth(m, doc))) {
         const n = await applyRules(m, pendingRulesFor(m));
-        toast(n ? `Budżet utworzony · dodano ${n} zaplanowane` : 'Budżet utworzony');
+        const made = await ensureAhead(true);
+        toast(made ? `Budżet utworzony · gotowe także ${made} kolejnych miesięcy` : n ? `Budżet utworzony · dodano ${n} zaplanowane` : 'Budżet utworzony');
       }
       break;
     }
@@ -1455,6 +1484,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id
 store = REPORT ? LocalStore(REPORT, false) : LocalStore(null, true);
 subAll(); render();
 
+ensureAhead();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureAhead(); });
 if (REPORT || !pinSupported()) { $('#lock').classList.add('hidden'); document.body.classList.remove('locked'); }
 else lockOpen(pinRec() ? 'unlock' : 'setup');
 
