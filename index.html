@@ -93,6 +93,10 @@ input.amt{font-size:30px;font-weight:700;text-align:center;padding:12px;font-var
 .srow.w{grid-template-columns:1fr 40px}
 .srow .line2{grid-column:2/4;display:grid;grid-template-columns:1fr 40px 40px;gap:6px}
 .srow input.emoin{text-align:center;font-size:20px;padding:8px 4px}
+.ib.emobtn{font-size:22px;height:46px}
+.epick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px}
+.epick button{font-size:24px;height:48px;border:1px solid var(--line);background:var(--bg);border-radius:12px}
+.epick button.on{border-color:var(--acc);background:var(--acc2)}
 .ib{border:1px solid var(--line);background:var(--bg);border-radius:10px;height:42px;font-size:15px}
 .ib.del{color:var(--bad)}
 .chk{display:flex;align-items:center;gap:10px;padding:8px 0}
@@ -233,7 +237,85 @@ const DEFAULT_CATS = [
 const GROUPS = [['zmienne','Życie i wydatki bieżące'], ['stale','Opłaty stałe'], ['oszczednosci','Oszczędności']];
 const GROUP_SHORT = {zmienne:'Bieżące', stale:'Opłaty stałe', oszczednosci:'Oszczędności'};
 const FREQ_LABEL = {m:'co miesiąc', y:'co rok', once:'jednorazowo'};
-const APP_VERSION = '2.4';
+
+/* Słownik ikon: słowa kluczowe (początki słów, bez polskich znaków) → ikona. Kolejność ma znaczenie – bardziej szczegółowe wyżej. */
+const ICON_DICT = [
+  ['🛡️', ['ubezpiecz', 'polis', 'oc ', 'oc/', 'ac ', 'assistance', 'nnw']],
+  ['🔧', ['przeglad', 'serwis', 'mechanik', 'warsztat', 'naprawa auta', 'wulkaniz', 'opon', 'olej', 'myjni']],
+  ['⛽', ['paliw', 'benzyn', 'tankow', 'lpg', 'diesel', 'ropa', 'stacja', 'orlen', 'ladowanie auta']],
+  ['🧾', ['podat', 'pit', 'vat', 'skarbow', 'zus', 'mandat']],
+  ['🅿️', ['parking', 'parkow']],
+  ['🛣️', ['autostrad', 'winiet', 'oplaty drog', 'viatoll', 'e-toll']],
+  ['🚗', ['auto', 'samoch', 'leasing', 'rejestrac', 'garaz']],
+  ['🚆', ['pociag', 'pkp', 'intercity', 'kolej']],
+  ['🚕', ['taxi', 'taksow', 'uber', 'bolt', 'freenow']],
+  ['🚌', ['komunikac', 'bilet', 'ztm', 'mpk', 'metro', 'autobus', 'tramwaj', 'transport']],
+  ['🚲', ['rower', 'hulajnog']],
+  ['🏦', ['kredyt', 'rata', 'raty', 'hipote', 'pozyczk', 'leasing']],
+  ['🏠', ['czynsz', 'mieszkan', 'najem', 'wynajem', 'wspolnot', 'spoldziel', 'administr']],
+  ['💡', ['prad', 'energi', 'elektryczn']],
+  ['🔥', ['gaz']],
+  ['💧', ['woda', 'wody', 'wodoc', 'kanaliz', 'scieki']],
+  ['🌡️', ['ogrzew', 'cieplo', 'ciepla', 'opal', 'wegiel', 'pellet']],
+  ['🗑️', ['smiec', 'odpad', 'wywoz']],
+  ['🌐', ['internet', 'wifi', 'swiatlowod']],
+  ['📱', ['telefon', 'komork', 'abonament', 'karta sim', 'doladow']],
+  ['📺', ['tv', 'telewiz', 'netflix', 'hbo', 'max', 'disney', 'canal', 'stream', 'spotify', 'youtube', 'subskryp', 'player', 'polsat']],
+  ['🦷', ['dentyst', 'stomatolog', 'ortodon', 'zeby']],
+  ['🩺', ['lekarz', 'zdrow', 'medyc', 'przychodn', 'badani', 'luxmed', 'medicover', 'enel', 'szpital', 'rehabilit', 'fizjo']],
+  ['💊', ['lek', 'aptek', 'recept', 'suplement', 'witamin']],
+  ['👓', ['okular', 'soczewk', 'optyk']],
+  ['🧠', ['psycholog', 'terapi', 'psychiatr']],
+  ['🍽️', ['restaurac', 'na miescie', 'obiad', 'lunch', 'pizza', 'wyjscia', 'stolowk', 'catering', 'dowoz', 'pyszne', 'glovo', 'wolt']],
+  ['🛒', ['zakup', 'spozyw', 'jedzeni', 'zycie', 'biedronk', 'lidl', 'auchan', 'carrefour', 'kaufland', 'zabk', 'dino', 'market', 'chemi']],
+  ['☕', ['kawa', 'kawiarn', 'starbucks', 'costa']],
+  ['🍷', ['alkohol', 'wino', 'piwo']],
+  ['🚬', ['papieros', 'tyton']],
+  ['👕', ['ubran', 'odziez', 'ciuch', 'buty', 'obuwi', 'zara', 'hm ', 'reserved']],
+  ['💇', ['fryzjer', 'kosmet', 'urod', 'paznok', 'manicure', 'barber', 'perfum', 'rossmann', 'hebe']],
+  ['🎒', ['szkol', 'przedszkol', 'zlobek', 'zlobka', 'wyprawk', 'podrecz']],
+  ['🧒', ['dzieci', 'dziecko', 'dzieck', 'syn', 'corka', 'niania', 'kieszonk']],
+  ['🧸', ['zabaw']],
+  ['🐾', ['zwierz', 'pies', 'psa', 'kot', 'weteryn', 'karma']],
+  ['🎁', ['prezent', 'urodzin', 'imienin', 'swieta', 'swiat', 'wigili', 'komuni', 'slub', 'wesel', 'chrzest', 'upomin']],
+  ['✈️', ['wakacj', 'urlop', 'podroz', 'wyjazd', 'lot', 'wycieczk', 'ferie']],
+  ['🏨', ['hotel', 'nocleg', 'airbnb', 'booking']],
+  ['🎬', ['rozryw', 'kino', 'teatr', 'koncert', 'film', 'muzeum', 'bilety na']],
+  ['🎮', ['gry', 'gra ', 'konsol', 'playstation', 'xbox', 'steam']],
+  ['🏋️', ['sport', 'silown', 'fitness', 'basen', 'multisport', 'treni', 'joga', 'bieg']],
+  ['🎨', ['hobby', 'pasj']],
+  ['📚', ['ksiazk', 'ksiegar', 'empik', 'audiobook', 'ebook', 'gazet', 'prasa']],
+  ['🎓', ['edukac', 'kurs', 'studi', 'szkolen', 'korepet', 'jezyk', 'angiels', 'nauka']],
+  ['🛠️', ['remont', 'naprawa', 'narzedz', 'budow', 'castorama', 'leroy', 'obi ']],
+  ['🛋️', ['mebl', 'wyposaz', 'ikea', 'agd', 'rtv']],
+  ['🌱', ['ogrod', 'rosli', 'kwiat', 'dzialk']],
+  ['💻', ['elektron', 'komputer', 'laptop', 'sprzet', 'oprogramow', 'aplikac']],
+  ['💳', ['bank', 'karta', 'prowizj', 'oplaty bank']],
+  ['🤝', ['darowiz', 'charyt', 'zbiórk', 'zbiork', 'datek', 'kosciol', 'ofiar']],
+  ['🛟', ['awaryjn', 'poduszk', 'rezerw', 'nieprzewidz']],
+  ['📈', ['inwest', 'akcj', 'etf', 'obligac', 'ike', 'ikze', 'ppk', 'emerytur', 'fundusz', 'gield', 'krypto']],
+  ['🐷', ['oszczed', 'odklad', 'skarbon', 'lokat', 'konto oszcz']],
+  ['💵', ['gotowk', 'pensj', 'wyplat', 'wynagrodz']],
+  ['📦', ['inne', 'rozne', 'pozostal', 'drobne']]
+];
+const PL_MAP = {'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'};
+const normName = s => ' ' + String(s || '').toLowerCase().replace(/[ąćęłńóśźż]/g, c => PL_MAP[c]).replace(/[^a-z0-9/ -]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+function guessIcon(name) {
+  const n = normName(name);
+  if (n.trim() === '') return null;
+  for (const [icon, keys] of ICON_DICT) for (const k of keys) if (n.includes(' ' + k)) return icon;
+  return null;
+}
+const ICON_PICK = [
+  ['Dom i opłaty', ['🏠','🏦','💡','🔥','💧','🌡️','🗑️','🌐','📱','📺','🧾','💳']],
+  ['Auto i transport', ['🚗','⛽','🔧','🛡️','🅿️','🛣️','🚌','🚆','🚕','🚲','✈️','🏍️']],
+  ['Codzienne', ['🛒','🍽️','☕','🍷','🥖','🥩','🍎','🧴','🧻','🚬','👕','💇']],
+  ['Zdrowie', ['💊','🩺','🦷','👓','🧠','🏥','💉','🩹']],
+  ['Rodzina i dom', ['🧒','🎒','🧸','🐾','🎁','🛋️','🛠️','🌱','🧹','👶']],
+  ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
+  ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
+];
+const APP_VERSION = '2.6';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -293,6 +375,12 @@ function LocalStore(initial, persist) {
     deleteTx: async id => { delete data.tx[id]; save(); },
     saveRule: async r => { data.rules[r.id] = r; save(); },
     deleteRule: async id => { delete data.rules[id]; save(); },
+    clearMonth: async (m, whole) => {
+      let n = 0;
+      for (const [id, t] of Object.entries(data.tx)) if (t.m === m) { delete data.tx[id]; n++; }
+      if (whole) delete data.months[m];
+      save(); return n;
+    },
     hasData: () => Object.keys(data.tx).length > 0 || Object.keys(data.months).length > 0
   };
 }
@@ -536,13 +624,14 @@ function historyHtml() {
   let h = `<div class="card"><div class="kv"><span>Wpływy w miesiącu</span><b class="pos">+${zl(c.inc)}</b></div><div class="kv"><span>Wydatki w miesiącu</span><b>−${zl(c.spent)}</b></div>
     ${c.plannedOut ? `<div class="kv"><span>w tym zaplanowane</span><b class="neg">−${zl(c.plannedOut)}</b></div>` : ''}
     ${REPORT ? '' : `<div class="row2"><button class="btn sec" data-act="report">📤 Wyślij raport</button><button class="btn sec" data-act="xlsx">📊 Excel</button></div>`}</div>`;
-  if (!list.length) return h + `<div class="empty">Brak operacji w tym miesiącu.${REPORT ? '' : '<br>Dodaj pierwszą przyciskiem +'}</div>`;
+  const clearBtn = REPORT ? '' : `<button class="btn danger" style="margin-top:28px" data-act="clearmonth">🗑️ Wyczyść miesiąc: ${esc(monthLabel(S.month))}</button>`;
+  if (!list.length) return h + `<div class="empty">Brak operacji w tym miesiącu.${REPORT ? '' : '<br>Dodaj pierwszą przyciskiem +'}</div>` + clearBtn;
   let day = null;
   for (const t of list) {
     if (t.d !== day) { if (day !== null) h += `</div>`; day = t.d; h += `<div class="dhead">${esc(dayLabel(t.d))}</div><div class="card list">`; }
     h += txRow(t);
   }
-  return h + `</div>`;
+  return h + `</div>` + clearBtn;
 }
 
 function settingsHtml() {
@@ -568,9 +657,10 @@ function settingsHtml() {
   d.wallets.forEach((w, i) => h += `<div class="srow w"><input value="${esc(w.name)}" data-in="wname" data-i="${i}" placeholder="Nazwa"><button class="ib del" data-act="wdel" data-i="${i}" aria-label="Usuń">✕</button></div>`);
   h += `<button class="chip" style="margin-top:10px" data-act="wadd">+ Dodaj konto</button></div>`;
   h += `<h3>Kategorie</h3><div class="card">`;
-  d.categories.forEach((c, i) => h += `<div class="srow"><input class="emoin" value="${esc(c.emoji || '')}" data-in="cemoji" data-i="${i}" maxlength="4"><input value="${esc(c.name)}" data-in="cname" data-i="${i}" placeholder="Nazwa"><button class="ib del" data-act="cdel" data-i="${i}" aria-label="Usuń">✕</button>
+  d.categories.forEach((c, i) => h += `<div class="srow"><button class="ib emobtn" data-act="cemopick" data-i="${i}" aria-label="Zmień ikonę">${esc(c.emoji || '🏷️')}</button><input value="${esc(c.name)}" data-in="cname" data-i="${i}" placeholder="Nazwa"><button class="ib del" data-act="cdel" data-i="${i}" aria-label="Usuń">✕</button>
     <div class="line2"><select data-in="cgroup" data-i="${i}">${Object.entries(GROUP_SHORT).map(([g, l]) => `<option value="${g}"${(c.group || 'zmienne') === g ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="ib" data-act="cup" data-i="${i}" aria-label="W górę">↑</button><button class="ib" data-act="cdown" data-i="${i}" aria-label="W dół">↓</button></div></div>`);
-  h += `<button class="chip" style="margin-top:10px" data-act="cadd">+ Dodaj kategorię</button></div>`;
+  h += `<div class="chips" style="margin-top:10px"><button class="chip" data-act="cadd">+ Dodaj kategorię</button><button class="chip" data-act="cautoicons">🪄 Dopasuj ikony do nazw</button></div>
+    <p class="sub">Ikona dobiera się sama po wpisaniu nazwy (np. Paliwo ⛽, Ubezpieczenie 🛡️). Stuknij ikonę, żeby wybrać inną.</p></div>`;
   h += `<button class="btn" data-act="ssave">${S.draftDirty ? 'Zapisz zmiany •' : 'Zapisz zmiany'}</button>`;
   h += `<h3>Bezpieczeństwo</h3><div class="card"><button class="btn sec" style="margin-top:0" data-act="pinchange">🔒 Zmień PIN</button>
     <p class="sub">Aplikacja blokuje się przy każdym uruchomieniu i po minucie w tle.</p></div>`;
@@ -623,8 +713,10 @@ function helpHtml() {
       <li>Jednorazowo: otwórz istniejącą operację → <b>📅 Na następny miesiąc</b> albo <b>📅 Za rok</b>.</li>
       <li>Pozycje dodają się w chwili tworzenia budżetu na dany miesiąc. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
       <li>Zmiana kwoty w powtarzanej operacji obejmuje też kolejne miesiące. Przy usuwaniu wybierasz: tylko tę albo też przyszłe.</li></ul>`)
+  + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>`)
   + sec('🔄 Przelew między kontami', `<p><b>+</b> → zakładka <b>Przelew</b> → z którego konta na które. Przelew zmienia tylko stan kont, nie rusza kategorii ani bilansu.</p>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
+  + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>usuń cały miesiąc</b> (wraca ekran „Utwórz budżet”). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
       <li>Na komputerze otwórz załącznik dwuklikiem – w przeglądarce widać cały budżet (wszystkie miesiące) w trybie podglądu.</li>
@@ -913,7 +1005,7 @@ async function importFile(file) {
 
 /* ---------- PIN ---------- */
 const PIN_KEY = 'budzet-pin';
-const L = {mode:null, step:0, buf:'', first:'', fails:0, until:0, busy:false};
+const L = {mode:null, step:0, buf:'', first:'', fails:0, until:0, busy:false, onOk:null, info:''};
 const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const pinSupported = () => !!(window.crypto && crypto.subtle && window.isSecureContext !== false);
@@ -927,17 +1019,18 @@ async function pinSave(pin) {
   localStorage.setItem(PIN_KEY, JSON.stringify({salt, iter, hash:await pinHash(pin, salt, iter), len:pin.length}));
 }
 async function pinCheck(pin) { const r = pinRec(); return !!r && (await pinHash(pin, r.salt, r.iter)) === r.hash; }
-const lockVerifying = () => L.mode === 'unlock' || (L.mode === 'change' && L.step === 0);
+const lockVerifying = () => L.mode === 'unlock' || L.mode === 'confirm' || (L.mode === 'change' && L.step === 0);
 const lockNewStep = () => (L.mode === 'setup' && L.step === 0) || (L.mode === 'change' && L.step === 1);
-function lockOpen(mode) {
+function lockOpen(mode, opts) {
   L.mode = mode; L.step = 0; L.buf = ''; L.first = '';
+  L.onOk = (opts && opts.onOk) || null; L.info = (opts && opts.info) || '';
   closeSheet(); $('#dlg').classList.remove('open');
   document.body.classList.add('locked'); $('#lock').classList.remove('hidden'); lockDraw();
 }
 function lockClose() { L.mode = null; document.body.classList.remove('locked'); $('#lock').classList.add('hidden'); render(); }
 function lockDraw(msg) {
   const m = L.mode, s = L.step;
-  const [title, sub] = m === 'unlock' ? ['Wpisz PIN', '']
+  const [title, sub] = m === 'unlock' ? ['Wpisz PIN', ''] : m === 'confirm' ? ['Potwierdź PIN-em', L.info]
     : m === 'setup' ? (s === 0 ? ['Ustaw PIN', '4–6 cyfr. Będzie potrzebny przy każdym otwarciu aplikacji.'] : ['Powtórz PIN', ''])
     : (s === 0 ? ['Obecny PIN', ''] : s === 1 ? ['Nowy PIN', '4–6 cyfr'] : ['Powtórz nowy PIN', '']);
   $('#lockTitle').textContent = title; $('#lockSub').textContent = sub;
@@ -946,7 +1039,7 @@ function lockDraw(msg) {
   $('#lockMsg').textContent = msg || '';
   $('#padOk').classList.toggle('inv', !lockNewStep());
   $('#lockForgot').classList.toggle('hidden', m !== 'unlock');
-  $('#lockCancel').classList.toggle('hidden', m !== 'change');
+  $('#lockCancel').classList.toggle('hidden', m !== 'change' && m !== 'confirm');
 }
 function lockShake() { const b = $('#lockbox'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
 async function lockKey(k) {
@@ -967,6 +1060,7 @@ async function lockSubmit() {
     if (!ok) { L.buf = ''; if (++L.fails >= 5) { L.until = Date.now() + 30000; L.fails = 0; } lockShake(); lockDraw('Błędny PIN'); return; }
     L.fails = 0;
     if (L.mode === 'unlock') { lockClose(); return; }
+    if (L.mode === 'confirm') { const cb = L.onOk; lockClose(); if (cb) cb(); return; }
     L.step = 1; L.buf = ''; lockDraw(); return;
   }
   if (lockNewStep()) {
@@ -991,7 +1085,7 @@ document.addEventListener('keydown', e => {
   if (!L.mode) return;
   if (/^[0-9]$/.test(e.key)) lockKey(e.key); else if (e.key === 'Backspace') lockKey('del'); else if (e.key === 'Enter') lockKey('ok');
 });
-$('#lockCancel').addEventListener('click', () => { if (L.mode === 'change') lockClose(); });
+$('#lockCancel').addEventListener('click', () => { if (L.mode === 'change' || L.mode === 'confirm') lockClose(); });
 $('#lockForgot').addEventListener('click', async () => {
   if (!(await ask('Bez PIN-u nie da się odblokować aplikacji. Możesz usunąć wszystkie dane z tego telefonu, ustawić nowy PIN i wczytać ostatni raport (przycisk „Mam już kopię”). Usunąć dane?', 'Usuń dane'))) return;
   if (!(await ask('Na pewno? Tego nie można cofnąć.', 'Tak, usuń wszystko'))) return;
@@ -1025,6 +1119,21 @@ document.addEventListener('click', async e => {
     case 'settheme': lsSet('budzet-theme', ds.v); applyTheme(); render(); renderMain(true); break;
     case 'pinchange': lockOpen('change'); break;
     case 'updcheck': checkUpdate(); break;
+    case 'clearmonth': {
+      const m = S.month, n = S.tx.length;
+      const ch = await choose(`Wyczyścić ${monthLabel(m)}? Tego nie da się cofnąć – jeśli chcesz mieć kopię, najpierw wyślij raport.`,
+        [{label:`Usuń operacje (${n}) – zostaw plan i środki`, cls:'danger'}, {label:'Usuń cały miesiąc', cls:'danger'}]);
+      if (ch < 0) return;
+      const whole = ch === 1;
+      const run = async () => {
+        const removed = await store.clearMonth(m, whole);
+        toast(whole ? `Usunięto ${monthLabel(m)}` : `Usunięto ${removed} operacji`);
+        S.tab = 'budzet'; render();
+      };
+      if (pinSupported() && pinRec()) lockOpen('confirm', {info:(whole ? 'Usunięcie całego miesiąca: ' : 'Usunięcie operacji: ') + monthLabel(m), onOk:run});
+      else if (await ask('Na pewno?', 'Tak, usuń')) run();
+      break;
+    }
     case 'update': doUpdate(); break;
 
     case 'report': sendReport(); break;
@@ -1149,7 +1258,33 @@ document.addEventListener('click', async e => {
       if (!(await ask(`Usunąć konto „${w.name || 'bez nazwy'}”? Operacje zostaną w historii.`))) return;
       S.draft.wallets.splice(+ds.i, 1); S.draftDirty = true; renderMain(true); break;
     }
-    case 'cadd': S.draft.categories.push({id:uid(), emoji:'🏷️', name:'', group:'zmienne'}); S.draftDirty = true; renderMain(true); break;
+    case 'cadd': S.draft.categories.push({id:uid(), emoji:'🏷️', name:'', group:'zmienne', autoIcon:true}); S.draftDirty = true; renderMain(true);
+      setTimeout(() => { const ins = document.querySelectorAll('[data-in="cname"]'); const last = ins[ins.length - 1]; if (last) last.focus(); }, 50); break;
+    case 'cautoicons': {
+      let n = 0;
+      for (const c of S.draft.categories) { const g = guessIcon(c.name); if (g && g !== c.emoji) { c.emoji = g; n++; } }
+      S.draftDirty = n > 0 || S.draftDirty; renderMain(true);
+      toast(n ? `Zmieniono ikony: ${n} – pamiętaj „Zapisz zmiany”` : 'Ikony już pasują albo nie znalazłem dopasowań');
+      break;
+    }
+    case 'cemopick': {
+      const i = +ds.i, c = S.draft.categories[i];
+      const sug = guessIcon(c.name);
+      let h = head('Ikona: ' + esc(c.name || 'nowa kategoria'));
+      if (sug) h += `<label class="f">Podpowiedź</label><div class="epick"><button data-act="cemoset" data-v="${sug}" class="${sug === c.emoji ? 'on' : ''}">${sug}</button></div>`;
+      for (const [g, list] of ICON_PICK) h += `<label class="f">${g}</label><div class="epick">${list.map(e => `<button data-act="cemoset" data-v="${e}" class="${e === c.emoji ? 'on' : ''}">${e}</button>`).join('')}</div>`;
+      h += `<label class="f">Albo wpisz dowolne emoji z klawiatury</label><div class="row2" style="grid-template-columns:1fr auto"><input id="emocustom" class="emoin" maxlength="4" placeholder="🙂" style="font-size:22px;text-align:center"><button class="btn" style="margin:0;padding:0 18px" data-act="cemoset" data-v="">OK</button></div>`;
+      openSheet(h, {kind:'emo', i});
+      break;
+    }
+    case 'cemoset': {
+      const i = S.sheet && S.sheet.i; if (i === undefined) return;
+      const v = ds.v || ($('#emocustom') ? $('#emocustom').value.trim() : '');
+      if (!v) { toast('Wpisz emoji'); return; }
+      const c = S.draft.categories[i]; c.emoji = v; c.autoIcon = false; S.draftDirty = true;
+      closeSheet(); renderMain(true);
+      break;
+    }
     case 'cdel': {
       const c = S.draft.categories[+ds.i];
       if (!(await ask(`Usunąć kategorię „${c.name || 'bez nazwy'}”? Operacje zostaną w historii.`))) return;
@@ -1162,7 +1297,7 @@ document.addEventListener('click', async e => {
     }
     case 'ssave': {
       const d = clone(S.draft);
-      d.wallets.forEach(w => w.name = w.name.trim()); d.categories.forEach(c => { c.name = c.name.trim(); c.emoji = (c.emoji || '').trim(); });
+      d.wallets.forEach(w => w.name = w.name.trim()); d.categories.forEach(c => { c.name = c.name.trim(); c.emoji = (c.emoji || '').trim() || '🏷️'; delete c.autoIcon; });
       if (d.wallets.some(w => !w.name) || d.categories.some(c => !c.name)) { toast('Uzupełnij wszystkie nazwy'); return; }
       if (await write(store.saveSettings(d), 'Zapisano ustawienia')) { S.draft = d; S.draftDirty = false; renderMain(true); }
       break;
@@ -1177,7 +1312,14 @@ document.addEventListener('input', e => {
   const k = el.dataset && el.dataset.in; if (!k || !S.draft) return;
   const i = +el.dataset.i;
   if (k === 'wname') S.draft.wallets[i].name = el.value;
-  else if (k === 'cname') S.draft.categories[i].name = el.value;
+  else if (k === 'cname') {
+    const c = S.draft.categories[i]; c.name = el.value;
+    if (c.autoIcon || !c.emoji || c.emoji === '🏷️') {
+      const g = guessIcon(el.value);
+      c.emoji = g || '🏷️'; c.autoIcon = true;
+      const b = el.parentElement && el.parentElement.querySelector('.emobtn'); if (b) b.textContent = c.emoji;
+    }
+  }
   else if (k === 'cemoji') S.draft.categories[i].emoji = el.value;
   else if (k === 'cgroup') S.draft.categories[i].group = el.value;
   if (!S.draftDirty) { S.draftDirty = true; const b = document.querySelector('[data-act="ssave"]'); if (b) b.textContent = 'Zapisz zmiany •'; }

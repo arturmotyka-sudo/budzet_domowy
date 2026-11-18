@@ -1,8 +1,9 @@
 {
-  "version": "2.4",
+  "version": "2.6",
   "date": "2026-11-18",
   "changes": [
-    "Nowe nazwy plików ikony – Chrome łatwiej podmieni ikonę na złotą monetę",
-    "Konta pokazują rzeczywiste pieniądze (z wersji 2.3)"
+    "Ikony kategorii dobierają się same po nazwie (paliwo ⛽, podatek 🧾, przegląd 🔧, ubezpieczenie 🛡️ i ~60 innych)",
+    "Wybór ikony z listy po stuknięciu",
+    "Przycisk „Dopasuj ikony do nazw”"
   ]
 }
