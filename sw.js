@@ -1,6 +1,6 @@
 // Budżet domowy – działanie offline.
 // Przy każdej nowej wersji zmień numer poniżej (taki sam jak APP_VERSION w index.html i w version.json).
-const CACHE = 'budzet-2.8';
+const CACHE = 'budzet-2.9';
 const FILES = ['./', './index.html', './manifest.webmanifest', './moneta-192.png', './moneta-512.png', './moneta-maskable.png', './xlsx.full.min.js'];
 
 self.addEventListener('install', e => {

@@ -1,6 +1,6 @@
 # Budżet domowy – aplikacja na telefon
 
-**Wersja 2.8** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
+**Wersja 2.9** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -44,7 +44,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Najważniejsze funkcje (skrót)
 
-- **Bilans do zera** – „Do rozdysponowania” pokazuje, ile pieniędzy nie ma jeszcze przydziału.
+- **Bilans do zera** – „Pozostało do rozdysponowania” pokazuje, ile pieniędzy nie ma jeszcze przydziału.
 - **Wydatki, wpływy, przelewy** – zielony przycisk **+**.
 - **Zaplanowane płatności** (czerwone, np. zlecenia stałe) i **spodziewane wpływy** – rezerwują pieniądze w budżecie; na koncie zmieniają stan dopiero po **✓ Zapłacone / ✓ Wpłynęło**.
 - **Powtarzanie** co miesiąc / co rok (pensja, czynsz, ubezpieczenie, przegląd) i jednorazowe kopiowanie na następny miesiąc lub za rok.
@@ -63,6 +63,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **2.9** – napis „Pozostało do rozdysponowania” nad kwotą (zielony), bez powtórzenia pod kwotą.
 - **2.8** – żywy zielony kolor kwoty do rozdysponowania, komunikat „Do rozdysponowania pozostało”.
 - **2.7** – przenoszenie salda między miesiącami, plan na 12 miesięcy do przodu, korekty „tylko ten / ten i kolejne”, zmiana ikony z kategorii, aktualizacja w zakładce Pomoc.
 - **2.6** – automatyczne ikony kategorii i wybór ikony z listy.

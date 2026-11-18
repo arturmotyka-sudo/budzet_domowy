@@ -116,7 +116,9 @@ p.sub{margin:6px 0}
 :root{--vivid:#16a34a;--vividbg:#dcfce7}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--vivid:#22c55e;--vividbg:#12301f}}
 :root[data-theme=dark]{--vivid:#22c55e;--vividbg:#12301f}
-.hero.ok .big,.hero.warn .big{color:var(--vivid)}
+.hero.ok .big,.hero.warn .big,.hero.ok .k,.hero.warn .k{color:var(--vivid)}
+.hero .k{font-weight:600;font-size:14px}
+.hero.bad .k{color:var(--bad)}
 .hero.warn .status{background:var(--vividbg);color:var(--vivid)}
 nav.tabs button{position:relative}
 nav.tabs button.upd::after{content:'';position:absolute;top:6px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
@@ -323,7 +325,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -600,7 +602,7 @@ function budgetHtml() {
   const msg = c.toAssign === 0 ? '✓ Bilans na zero – każda złotówka ma przydział'
             : c.toAssign > 0 ? 'Do rozdysponowania pozostało'
             : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
-  let h = `<div class="card hero ${cls}"><div class="k">Do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div><div class="status">${msg}</div>
+  let h = `<div class="card hero ${cls}"><div class="k">Pozostało do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}
   <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent)}</b></div><div>Zostało<b>${zl(c.leftTotal)}</b></div></div>${carryLine()}</div>`;
   const planned = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
   if (planned.length) {

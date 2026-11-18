@@ -1,8 +1,7 @@
 {
-  "version": "2.8",
+  "version": "2.9",
   "date": "2026-11-18",
   "changes": [
-    "Kwota do rozdysponowania w żywym zielonym kolorze",
-    "Komunikat „Do rozdysponowania pozostało”"
+    "Napis „Pozostało do rozdysponowania” nad kwotą, w kolorze zielonym – bez powtórzenia pod kwotą"
   ]
 }
