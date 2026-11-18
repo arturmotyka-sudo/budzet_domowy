@@ -1,9 +1,9 @@
 {
-  "version": "3.2",
+  "version": "3.3",
   "date": "2026-11-18",
   "changes": [
-    "Budżety na 13 miesięcy do przodu (np. do grudnia 2027)",
-    "Nowy miesiąc na wzór tego samego miesiąca rok wcześniej – plan, wpływy, zaplanowane wydatki i poprawki „tylko w tym miesiącu”",
-    "Przy zmianie pozycji lub planu nowa opcja „tu i co rok w tym miesiącu”"
+    "„Wydane” pokazuje tylko to, co naprawdę zapłacone",
+    "Zaplanowane płatności osobno: „🕒 Zaplanowane (do zapłaty)”",
+    "Pasek kategorii: zapłacone pełne, zaplanowane kreskowane"
   ]
 }

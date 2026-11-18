@@ -1,6 +1,6 @@
 # Budżet domowy – aplikacja na telefon
 
-**Wersja 3.2** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
+**Wersja 3.3** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -46,7 +46,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 - **Bilans do zera** – „Pozostało do rozdysponowania” pokazuje, ile pieniędzy nie ma jeszcze przydziału.
 - **Wydatki, wpływy, przelewy** – zielony przycisk **+**.
-- **Zaplanowane płatności** (czerwone, np. zlecenia stałe) i **spodziewane wpływy** – rezerwują pieniądze w budżecie; na koncie zmieniają stan dopiero po **✓ Zapłacone / ✓ Wpłynęło**.
+- **Zaplanowane płatności** (czerwone, np. zlecenia stałe) i **spodziewane wpływy** – rezerwują pieniądze w budżecie, ale nie liczą się do „Wydane” ani do stanu konta, dopóki nie stukniesz **✓ Zapłacone / ✓ Wpłynęło**.
 - **Powtarzanie** wybierane przy każdej pozycji: co miesiąc, co 2 miesiące, co kwartał, co pół roku, co rok (pensja, czynsz, prąd, ubezpieczenie, przegląd), z korektą kwoty w pojedynczym miesiącu; do tego jednorazowe kopiowanie na następny miesiąc lub za rok.
 - **Przenoszenie salda** – stan kont z końca miesiąca (także minus) sam przechodzi na kolejny; możliwa korekta, gdy stan w banku jest inny.
 - **Budżety na 13 miesięcy do przodu** – tworzą się same; każdy nowy miesiąc powstaje na wzór tego samego miesiąca rok wcześniej (plan, wpływy, zaplanowane wydatki, poprawki „tylko w tym miesiącu”).
@@ -64,6 +64,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **3.3** – „Wydane” to tylko zapłacone kwoty; zaplanowane pokazane osobno („do zapłaty”), kreskowany pasek w kategorii.
 - **3.2** – budżety na 13 miesięcy do przodu; nowy miesiąc powstaje na wzór tego samego miesiąca rok wcześniej (plan, wpływy, zaplanowane wydatki, poprawki); przy zmianach nowa opcja „tu i co rok w tym miesiącu”.
 - **3.1** – budżety tworzą się same na bieżący miesiąc i 12 kolejnych (saldo, plan, powtarzające się pozycje); nowy miesiąc dobudowuje się automatycznie.
 - **3.0** – powtarzanie co miesiąc / co 2 miesiące / co kwartał / co pół roku / co rok, podgląd miesięcy, lista pozycji w przyszłym miesiącu; usunięty przycisk „12 miesięcy do przodu”.

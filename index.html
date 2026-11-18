@@ -44,7 +44,9 @@ h3 span{text-transform:none;letter-spacing:0}
 .cname{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cleft{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
 .bar{display:block;height:6px;background:var(--line);border-radius:3px;margin:6px 0 4px;overflow:hidden}
+.bar{display:flex}
 .bar i{display:block;height:100%;background:var(--acc);border-radius:3px}
+.bar i.pl{background:repeating-linear-gradient(45deg,var(--bad) 0 4px,transparent 4px 7px);opacity:.75;border-radius:0 3px 3px 0}
 .bar.bad i{background:var(--bad)}
 .sub{font-size:12px;color:var(--mute);display:block}
 .neg{color:var(--bad)}.pos{color:var(--ok)}
@@ -331,7 +333,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -658,7 +660,7 @@ function budgetHtml() {
             : c.toAssign > 0 ? 'Do rozdysponowania pozostało'
             : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
   let h = `<div class="card hero ${cls}"><div class="k">Pozostało do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}
-  <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent)}</b></div><div>Zostało<b>${zl(c.leftTotal)}</b></div></div>${carryLine()}</div>`;
+  <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent - c.plannedOut)}</b></div><div>Zostało<b class="${c.leftTotal < 0 ? 'neg' : ''}">${zl(c.leftTotal)}</b></div></div>${c.plannedOut ? `<div class="sub neg" style="margin-top:8px">🕒 Zaplanowane (do zapłaty): <b>${zl(c.plannedOut)}</b></div>` : ''}${carryLine()}</div>`;
   const planned = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
   if (planned.length) {
     h += `<h3>🕒 Zaplanowane<span class="neg">${zl(c.plannedOut)}</span></h3><div class="card list">`;
@@ -687,16 +689,20 @@ function carryLine() {
 }
 
 function catRow(x, cc) {
-  const left = cc.plan - cc.spent;
-  const pct = cc.plan > 0 ? Math.min(100, cc.spent / cc.plan * 100) : (cc.spent > 0 ? 100 : 0);
+  const real = cc.spent - cc.planned;              // naprawdę zapłacone
+  const left = cc.plan - cc.spent;                 // wolne = plan − zapłacone − zaplanowane
+  const base = Math.max(cc.plan, cc.spent) || 1;
+  const pReal = cc.plan > 0 || cc.spent > 0 ? Math.min(100, real / base * 100) : 0;
+  const pPlan = cc.plan > 0 || cc.spent > 0 ? Math.min(100 - pReal, cc.planned / base * 100) : 0;
   let right, sub, bc = '';
   const noPlan = REPORT ? 'brak planu' : 'brak planu – stuknij, by ustawić';
-  const pl = cc.planned ? ` · <span class="neg">🕒 ${zl(cc.planned)}</span>` : '';
-  if (left < 0) { right = `<span class="neg">−${zl(-left)}</span>`; sub = `przekroczono · wydane ${zl(cc.spent)} z ${zl(cc.plan)}`; bc = 'bad'; }
-  else if (x.group === 'stale' && cc.plan > 0 && left === 0 && !cc.planned) { right = `<span class="pos">✓ opłacone</span>`; sub = `zapłacono ${zl(cc.spent)}`; }
-  else if (x.group === 'oszczednosci') { right = zl(left); sub = cc.plan ? `odłożone ${zl(cc.spent)} z ${zl(cc.plan)}` : noPlan; }
-  else { right = zl(left); sub = cc.plan ? `wydane ${zl(cc.spent)} z ${zl(cc.plan)}` : noPlan; }
-  return `<button class="cat" data-act="cat" data-id="${esc(x.id)}"><span class="emo">${esc(x.emoji || '•')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.name)}</span><span class="cleft">${right}</span></span><span class="bar ${bc}"><i style="width:${pct.toFixed(1)}%"></i></span><span class="sub">${sub}${pl}</span></span></button>`;
+  const pl = cc.planned ? ` · <span class="neg">🕒 zaplanowane ${zl(cc.planned)}</span>` : '';
+  const verb = x.group === 'oszczednosci' ? 'odłożone' : x.group === 'stale' ? 'zapłacone' : 'wydane';
+  if (left < 0) { right = `<span class="neg">−${zl(-left)}</span>`; sub = `przekroczono · ${verb} ${zl(real)} z ${zl(cc.plan)}`; bc = 'bad'; }
+  else if (x.group === 'stale' && cc.plan > 0 && left === 0 && !cc.planned) { right = `<span class="pos">✓ opłacone</span>`; sub = `zapłacono ${zl(real)}`; }
+  else if (left === 0 && cc.planned) { right = `<span class="neg">🕒 do zapłaty</span>`; sub = `${verb} ${zl(real)} z ${zl(cc.plan)}`; }
+  else { right = zl(left); sub = cc.plan ? `${verb} ${zl(real)} z ${zl(cc.plan)}` : noPlan; }
+  return `<button class="cat" data-act="cat" data-id="${esc(x.id)}"><span class="emo">${esc(x.emoji || '•')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.name)}</span><span class="cleft">${right}</span></span><span class="bar ${bc}"><i style="width:${pReal.toFixed(1)}%"></i><i class="pl" style="width:${pPlan.toFixed(1)}%"></i></span><span class="sub">${sub}${pl}</span></span></button>`;
 }
 
 function txInfo(t) {
@@ -719,8 +725,8 @@ const sortTx = list => list.slice().sort((a, b) => (b.d || '').localeCompare(a.d
 function historyHtml() {
   const c = calc();
   const list = sortTx(S.tx);
-  let h = `<div class="card"><div class="kv"><span>Wpływy w miesiącu</span><b class="pos">+${zl(c.inc)}</b></div><div class="kv"><span>Wydatki w miesiącu</span><b>−${zl(c.spent)}</b></div>
-    ${c.plannedOut ? `<div class="kv"><span>w tym zaplanowane</span><b class="neg">−${zl(c.plannedOut)}</b></div>` : ''}
+  let h = `<div class="card"><div class="kv"><span>Wpływy w miesiącu</span><b class="pos">+${zl(c.inc)}</b></div><div class="kv"><span>Wydatki zapłacone</span><b>−${zl(c.spent - c.plannedOut)}</b></div>
+    ${c.plannedOut ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">−${zl(c.plannedOut)}</b></div>` : ''}
     ${REPORT ? '' : `<div class="row2"><button class="btn sec" data-act="report">📤 Wyślij raport</button><button class="btn sec" data-act="xlsx">📊 Excel</button></div>`}</div>`;
   const clearBtn = REPORT ? '' : `<button class="btn danger" style="margin-top:28px" data-act="clearmonth">🗑️ Wyczyść miesiąc: ${esc(monthLabel(S.month))}</button>`;
   if (!list.length) return h + `<div class="empty">Brak operacji w tym miesiącu.${REPORT ? '' : '<br>Dodaj pierwszą przyciskiem +'}</div>` + clearBtn;
@@ -774,7 +780,7 @@ function helpHtml() {
   + sec('🎨 Co oznaczają kolory', `<div class="legend">
       <span class="neg"><b>−80,00 zł</b></span><span>zaplanowana płatność / zlecenie stałe (jeszcze niezapłacona)</span>
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
-      <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek</span>
+      <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek – liczy się do „Wydane”</span>
       <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
       <span style="color:var(--vivid)"><b>Bilans</b></span><span>zielony – kwota, która pozostała do rozdysponowania (przydziel ją do kategorii)</span>
       <span class="neg"><b>Bilans</b></span><span>czerwony – brakuje pieniędzy (zaplanowano więcej, niż macie, albo przeszedł minus z poprzedniego miesiąca)</span>
@@ -809,7 +815,7 @@ function helpHtml() {
       <p>Wpływ zwiększa <b>Do rozdysponowania</b> – potem rozdziel go na kategorie, aż bilans znów będzie 0 zł.</p>`)
   + sec('🕒 Zaplanowane płatności (czerwone)', `<p>Dla zleceń stałych i płatności, które musisz zrobić:</p><ol>
       <li>Dodaj wydatek jak zwykle i włącz przełącznik <b>🕒 Zaplanowana</b>.</li>
-      <li>Kwota jest czerwona i od razu odliczona z kategorii (pieniądze są „zarezerwowane”). Z konta zniknie dopiero po zapłaceniu – pod kontem widać „po zaplanowanych”.</li>
+      <li>Kwota jest czerwona i <b>rezerwuje</b> pieniądze w kategorii („Zostało” od razu się zmniejsza), ale <b>nie liczy się do „Wydane”</b> – widać ją osobno jako „🕒 Zaplanowane (do zapłaty)”. Z konta zniknie dopiero po zapłaceniu.</li>
       <li>Na ekranie Budżet pojawia się lista <b>Zaplanowane</b>. Gdy zapłacisz, stuknij <b>✓ Zapłacone</b>.</li></ol>`)
   + sec('💵 Zaplanowane (spodziewane) wpływy', `<ol>
       <li><b>+</b> → zakładka <b>Wpływ</b> → kwota i konto.</li>
@@ -903,7 +909,7 @@ function openCat(id) {
     <span class="sub" id="planhint" style="text-align:center;margin-top:6px"></span>
     <div class="row2"><button class="btn sec" data-act="planfill">Wyrównaj bilans</button><button class="btn" data-act="plansave">Zapisz plan</button></div>
     <div class="card" style="margin-top:16px">`}
-    <div class="kv"><span>Wydane</span><b>${zl(cc.spent)}</b></div>${cc.planned ? `<div class="kv"><span>w tym zaplanowane</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
+    <div class="kv"><span>Wydane (zapłacone)</span><b>${zl(cc.spent - (cc.planned || 0))}</b></div>${cc.planned ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
     ${S.readOnly || !catById(id) ? '' : `<button class="btn sec" data-act="addtx" data-cat="${esc(id)}">+ Dodaj wydatek</button>`}
     ${list.length ? `<div class="dhead">Operacje w tym miesiącu</div><div class="card list">${list.map(t => txRow(t, true)).join('')}</div>` : ''}`,
     {kind:'cat', id, basePlan:cc.plan, baseAssign:c.toAssign});
@@ -1085,12 +1091,12 @@ function loadXlsx() {
 async function exportXlsx() {
   try { await loadXlsx(); } catch (e) { toast('Nie udało się wczytać modułu Excel'); return; }
   const c = calc(), st = S.settings, X = window.XLSX;
-  const sum = [[`Budżet: ${monthLabel(S.month)}`], [], ['Kategoria', 'Grupa', 'Plan', 'Wydane', 'w tym zaplanowane', 'Zostało']];
-  for (const x of st.categories) { const cc = c.C[x.id]; sum.push([x.name, GROUP_SHORT[x.group || 'zmienne'], cc.plan / 100, cc.spent / 100, cc.planned / 100, (cc.plan - cc.spent) / 100]); }
-  for (const [id, v] of Object.entries(c.C)) if (v.orphan && (v.plan || v.spent)) sum.push(['(usunięta kategoria)', '', v.plan / 100, v.spent / 100, v.planned / 100, (v.plan - v.spent) / 100]);
-  sum.push(['RAZEM', '', c.planTotal / 100, c.spent / 100, c.plannedOut / 100, c.leftTotal / 100], []);
+  const sum = [[`Budżet: ${monthLabel(S.month)}`], [], ['Kategoria', 'Grupa', 'Plan', 'Wydane (zapłacone)', 'Zaplanowane', 'Zostało']];
+  for (const x of st.categories) { const cc = c.C[x.id]; sum.push([x.name, GROUP_SHORT[x.group || 'zmienne'], cc.plan / 100, (cc.spent - cc.planned) / 100, cc.planned / 100, (cc.plan - cc.spent) / 100]); }
+  for (const [id, v] of Object.entries(c.C)) if (v.orphan && (v.plan || v.spent)) sum.push(['(usunięta kategoria)', '', v.plan / 100, (v.spent - v.planned) / 100, v.planned / 100, (v.plan - v.spent) / 100]);
+  sum.push(['RAZEM', '', c.planTotal / 100, (c.spent - c.plannedOut) / 100, c.plannedOut / 100, c.leftTotal / 100], []);
   sum.push(['Konto', 'Na start', 'Wpływy', 'Wydatki', 'Przelewy', 'Stan teraz', 'Po zaplanowanych']);
-  for (const w of walletList(c)) { const x = c.W[w.id]; sum.push([w.name, x.start / 100, x.inc / 100, x.spent / 100, (x.tin - x.tout) / 100, x.actual / 100, x.bal / 100]); }
+  for (const w of walletList(c)) { const x = c.W[w.id]; sum.push([w.name, x.start / 100, (x.inc - x.pinc) / 100, (x.spent - x.pexp) / 100, ((x.tin - x.ptin) - (x.tout - x.ptout)) / 100, x.actual / 100, x.bal / 100]); }
   sum.push([], ['Do rozdysponowania', c.toAssign / 100]);
   const ops = [['Data', 'Typ', 'Kategoria', 'Konto', 'Na konto', 'Kwota', 'Status', 'Powtarzanie', 'Notatka']];
   const rowsMeta = [];
