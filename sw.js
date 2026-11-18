@@ -1,9 +1,12 @@
-// Budżet domowy – działanie offline. Przy zmianie plików podbij numer wersji.
-const CACHE = 'budzet-v1';
+// Budżet domowy – działanie offline.
+// Przy każdej nowej wersji zmień numer poniżej (taki sam jak APP_VERSION w index.html i w version.json).
+const CACHE = 'budzet-2.0';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './xlsx.full.min.js'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(FILES.map(f => new Request(f, {cache: 'reload'}))))
+    .then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
@@ -11,8 +14,10 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 // Najpierw pamięć podręczna (działa bez internetu), w tle pobranie nowszej wersji.
+// version.json zawsze z internetu – służy do sprawdzania aktualizacji.
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin)) return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.endsWith('version.json')) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const cached = await cache.match(e.request, {ignoreSearch: true});
     const network = fetch(e.request).then(res => { if (res && res.ok) cache.put(e.request, res.clone()); return res; }).catch(() => null);

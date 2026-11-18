@@ -9,7 +9,8 @@
 <link rel="icon" href="icon-192.png">
 <style>
 :root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#c0392b;--badbg:#fbe8e5;--ok:#2f6f5e}
-@media (prefers-color-scheme:dark){:root{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef8174;--badbg:#321d1b;--ok:#6cc2a6}}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef8174;--badbg:#321d1b;--ok:#6cc2a6}}
+:root[data-theme=dark]{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef8174;--badbg:#321d1b;--ok:#6cc2a6}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -108,9 +109,47 @@ p.sub{margin:6px 0}
 .banner.info{background:var(--acc2);color:var(--acc)}
 .banner button{border:0;background:none;color:inherit;font-weight:650;text-decoration:underline;padding:0;margin-left:4px}
 .hidden{display:none!important}
+.hbtn{position:absolute;right:14px;top:50%;transform:translateY(-35%);border:1px solid var(--line);background:var(--card);width:38px;height:38px;border-radius:50%;font-size:17px;line-height:1}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--badbg);color:var(--bad);margin-left:6px;vertical-align:1px}
+.tag.g{background:var(--acc2);color:var(--ok)}
+.tag.n{background:var(--bg);color:var(--mute)}
+.plrow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.plrow:last-child{border-bottom:0}
+.plrow .tx{border-bottom:0;flex:1;min-width:0}
+.paybtn{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:13px;white-space:nowrap;flex:none}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-top:14px;background:var(--bg);width:100%;text-align:left}
+.toggle .sub{margin-top:2px}
+.toggle.on{border-color:var(--bad);background:var(--badbg)}
+.toggle.on.g{border-color:var(--ok);background:var(--acc2)}
+.sw{width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.toggle.on .sw{background:var(--bad)}.toggle.on.g .sw{background:var(--ok)}
+.toggle.on .sw::after{left:21px}
+.hint{font-size:12px;color:var(--mute);margin-top:6px;display:block}
+.dlg .btn{margin-top:8px}
+.rrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rrow:last-of-type{border-bottom:0}
+.rrow .cbody{flex:1}
+/* PIN */
+.lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.lockbox{width:100%;max-width:310px;text-align:center}
+.lockbox img{width:76px;height:76px}
+.lockbox h2{margin:10px 0 4px;font-size:20px}
+.dots{display:flex;gap:14px;justify-content:center;margin:18px 0 6px;min-height:18px}
+.dots i{width:15px;height:15px;border-radius:50%;border:2px solid var(--acc)}
+.dots i.f{background:var(--acc)}
+.lockmsg{min-height:20px;font-size:13px;color:var(--bad)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.pad button{height:62px;border-radius:18px;font-size:24px;background:var(--card);border:1px solid var(--line)}
+.pad button.ok{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.pad button.inv{visibility:hidden}
+.linkbtn{border:0;background:none;color:var(--mute);margin-top:18px;text-decoration:underline;font-size:13px}
+.shake{animation:sh .35s}
+@keyframes sh{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:hidden}
 </style>
 </head>
-<body>
+<body class="locked">
 <header id="hdr"></header>
 <main id="main"><div class="empty">Wczytywanie…</div></main>
 <button class="fab" id="fab" data-act="addtx" aria-label="Dodaj operację" hidden>+</button>
@@ -120,6 +159,21 @@ p.sub{margin:6px 0}
   <button data-act="tab" data-tab="ustawienia" id="tab-ust"><span class="ico">⚙️</span>Ustawienia</button>
 </nav>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="lock" id="lock"><div class="lockbox" id="lockbox">
+  <img src="icon-192.png" alt="">
+  <h2 id="lockTitle">Budżet domowy</h2>
+  <div class="sub" id="lockSub"></div>
+  <div class="dots" id="dots"></div>
+  <div class="lockmsg" id="lockMsg"></div>
+  <div class="pad" id="pad">
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button data-k="del" aria-label="Usuń cyfrę">⌫</button><button data-k="0">0</button><button data-k="ok" class="ok" id="padOk" aria-label="Zatwierdź">✓</button>
+  </div>
+  <button class="linkbtn" id="lockForgot">Nie pamiętam PIN-u</button>
+  <button class="linkbtn" id="lockCancel">Anuluj</button>
+</div></div>
 <div class="dlgwrap" id="dlg"></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="importFile" accept=".html,.htm,.json,text/html,application/json" class="hidden">
@@ -143,9 +197,12 @@ const monthKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1);
 const shiftMonth = (k, n) => { const [y, m] = k.split('-').map(Number); return monthKey(new Date(y, m - 1 + n, 1)); };
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const monthLabel = k => { const [y, m] = k.split('-').map(Number); return cap(new Date(y, m - 1, 1).toLocaleDateString('pl-PL', {month:'long', year:'numeric'})); };
+const monthOnly = k => { const [y, m] = k.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('pl-PL', {month:'long'}); };
 const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 const lastDay = k => { const [y, m] = k.split('-').map(Number); return k + '-' + pad(new Date(y, m, 0).getDate()); };
+const clampDay = (k, day) => k + '-' + pad(Math.min(Math.max(1, day || 1), Number(lastDay(k).slice(8))));
 const dayLabel = d => { const [y, m, dd] = d.split('-').map(Number); return cap(new Date(y, m - 1, dd).toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'})); };
+const shortDay = d => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL', {day:'numeric', month:'short'}); };
 const dateTimeLabel = iso => new Date(iso).toLocaleString('pl-PL', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
 const clone = o => JSON.parse(JSON.stringify(o));
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -161,6 +218,26 @@ const DEFAULT_CATS = [
 ];
 const GROUPS = [['zmienne','Życie i wydatki bieżące'], ['stale','Opłaty stałe'], ['oszczednosci','Oszczędności']];
 const GROUP_SHORT = {zmienne:'Bieżące', stale:'Opłaty stałe', oszczednosci:'Oszczędności'};
+const FREQ_LABEL = {m:'co miesiąc', y:'co rok', once:'jednorazowo'};
+const APP_VERSION = '2.0';
+const APP_DATE = '2026-11-18';
+const verNum = v => String(v || '0').split('.').map(Number);
+const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+const fmtDate = d => { const [y, m, dd] = String(d).split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL'); };
+
+/* ---------- motyw ---------- */
+const THEME_ICON = {auto:'🌓', light:'☀️', dark:'🌙'};
+const THEME_LABEL = {auto:'Auto', light:'Jasny', dark:'Ciemny'};
+const themePref = () => { const p = lsGet('budzet-theme'); return THEME_ICON[p] ? p : 'auto'; };
+function applyTheme() {
+  const p = themePref(), r = document.documentElement;
+  if (p === 'auto') delete r.dataset.theme; else r.dataset.theme = p;
+  const dark = p === 'dark' || (p === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  r.style.colorScheme = dark ? 'dark' : 'light';
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = dark ? '#111413' : '#f3f4f1';
+}
+applyTheme();
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {}
 
 /* ---------- report mode ---------- */
 let REPORT = null;
@@ -168,16 +245,17 @@ try { const t = $('#report-data').textContent.trim(); if (t) REPORT = JSON.parse
 
 /* ---------- state ---------- */
 const CUR = monthKey(new Date());
-const S = { mode:'loading', settings:undefined, month:(REPORT && REPORT.month) || CUR, monthDoc:undefined, tx:[], tab:'budzet',
-            draft:null, draftDirty:false, readOnly:!!REPORT, txDraft:null, sheet:null };
+const S = { settings:undefined, month:(REPORT && REPORT.month) || CUR, monthDoc:undefined, tx:[], rules:{}, tab:'budzet',
+            draft:null, draftDirty:false, readOnly:!!REPORT, txDraft:null, sheet:null, remote:null };
 let store = null;
 
 /* ---------- storage (tylko w telefonie) ---------- */
 function LocalStore(initial, persist) {
   const KEY = 'budzet-domowy-v1';
-  let data = {settings:null, months:{}, tx:{}};
-  if (initial) data = Object.assign(data, clone({settings:initial.settings, months:initial.months, tx:initial.tx}));
-  else { try { const r = lsGet(KEY); if (r) data = Object.assign(data, JSON.parse(r)); } catch (e) {} }
+  const norm = d => ({settings:d.settings || null, months:d.months || {}, tx:d.tx || {}, rules:d.rules || {}});
+  let data = norm({});
+  if (initial) data = norm(clone(initial));
+  else { try { const r = lsGet(KEY); if (r) data = norm(JSON.parse(r)); } catch (e) {} }
   const subs = new Set();
   const save = () => {
     if (persist) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { toast('Nie udało się zapisać w pamięci telefonu!'); throw e; } }
@@ -189,15 +267,18 @@ function LocalStore(initial, persist) {
     watchSettings: cb => watch(() => cb(data.settings)),
     watchMonth: (m, cb) => watch(() => cb(data.months[m] || null)),
     watchTx: (m, cb) => watch(() => cb(txOf(m))),
+    watchRules: cb => watch(() => cb(data.rules)),
     getMonth: async m => data.months[m] || null,
     getTx: async m => txOf(m),
     listMonths: async () => Object.keys(data.months),
     getAll: () => clone(data),
-    replaceAll: async d => { data = {settings:d.settings || null, months:d.months || {}, tx:d.tx || {}}; save(); },
+    replaceAll: async d => { data = norm(d); save(); },
     saveSettings: async s => { data.settings = s; save(); },
     saveMonth: async (m, d) => { data.months[m] = d; save(); },
     saveTx: async t => { data.tx[t.id] = t; save(); },
     deleteTx: async id => { delete data.tx[id]; save(); },
+    saveRule: async r => { data.rules[r.id] = r; save(); },
+    deleteRule: async id => { delete data.rules[id]; save(); },
     hasData: () => Object.keys(data.tx).length > 0 || Object.keys(data.months).length > 0
   };
 }
@@ -207,8 +288,12 @@ async function write(p, okMsg) {
 }
 
 /* ---------- subscriptions ---------- */
-const unsub = {s:null, m:null, t:null};
-function subSettings() { unsub.s = store.watchSettings(d => { S.settings = d || null; render(); }); }
+const unsub = {s:null, m:null, t:null, r:null};
+function subAll() {
+  unsub.s = store.watchSettings(d => { S.settings = d || null; render(); });
+  unsub.r = store.watchRules(r => { S.rules = r || {}; render(); });
+  subMonth();
+}
 function subMonth() {
   unsub.m && unsub.m(); unsub.t && unsub.t();
   S.monthDoc = undefined; S.tx = [];
@@ -217,27 +302,74 @@ function subMonth() {
   unsub.t = store.watchTx(m, list => { if (m === S.month) { S.tx = list; render(); } });
 }
 
+/* ---------- płatności cykliczne / przypomnienia ---------- */
+function ruleApplies(r, m) {
+  if (r.freq === 'once') return r.target === m;
+  if (m <= r.from) return false;
+  if (r.freq === 'm') return true;
+  if (r.freq === 'y') return m.slice(5) === r.from.slice(5);
+  return false;
+}
+function txFromRule(r, m) {
+  const t = {id:uid(), m, d:clampDay(m, r.day), type:r.type, amount:r.amount, wallet:r.wallet, note:r.note || '', planned:true, ts:Date.now()};
+  if (r.freq !== 'once') t.rule = r.id;
+  if (r.type === 'wydatek') t.cat = r.cat;
+  if (r.type === 'przelew') t.to = r.to;
+  return t;
+}
+async function applyRules(m, rules) {
+  const existing = await store.getTx(m); let n = 0;
+  for (const r of rules) {
+    if (!ruleApplies(r, m)) continue;
+    if (r.freq !== 'once' && existing.some(t => t.rule === r.id)) continue;
+    await store.saveTx(txFromRule(r, m)); n++;
+    if (r.freq === 'once') await store.deleteRule(r.id);
+  }
+  return n;
+}
+async function applyRuleToExisting(r) {
+  const added = [];
+  for (const m of (await store.listMonths()).sort()) if (ruleApplies(r, m) && await applyRules(m, [r])) added.push(m);
+  return added;
+}
+function ruleFromTx(rec, freq, extra) {
+  const r = {id:uid(), freq, from:rec.m, type:rec.type, amount:rec.amount, wallet:rec.wallet, note:rec.note || '', day:Number(rec.d.slice(8))};
+  if (rec.type === 'wydatek') r.cat = rec.cat;
+  if (rec.type === 'przelew') r.to = rec.to;
+  return Object.assign(r, extra || {});
+}
+function ruleTitle(r) {
+  if (r.type === 'wplyw') return 'Wpływ → ' + walletName(r.wallet);
+  if (r.type === 'przelew') return walletName(r.wallet) + ' → ' + walletName(r.to);
+  return catName(r.cat);
+}
+function ruleWhen(r) {
+  if (r.freq === 'once') return 'jednorazowo: ' + monthLabel(r.target);
+  if (r.freq === 'y') return 'co rok w ' + ({'01':'styczniu','02':'lutym','03':'marcu','04':'kwietniu','05':'maju','06':'czerwcu','07':'lipcu','08':'sierpniu','09':'wrześniu','10':'październiku','11':'listopadzie','12':'grudniu'})[r.from.slice(5)];
+  return 'co miesiąc od ' + monthLabel(shiftMonth(r.from, 1));
+}
+
 /* ---------- calculations ---------- */
 function calcFor(st, md, txs) {
   st = st || {wallets:[], categories:[]}; md = md || {};
   const W = {}, C = {};
   const ensW = id => W[id] || (W[id] = {start:0, inc:0, spent:0, tin:0, tout:0, bal:0, orphan:true});
-  const ensC = id => C[id] || (C[id] = {plan:0, spent:0, orphan:true});
+  const ensC = id => C[id] || (C[id] = {plan:0, spent:0, planned:0, orphan:true});
   st.wallets.forEach(w => W[w.id] = {start:0, inc:0, spent:0, tin:0, tout:0, bal:0});
-  st.categories.forEach(c => C[c.id] = {plan:0, spent:0});
-  let startTotal = 0, inc = 0, spent = 0;
+  st.categories.forEach(c => C[c.id] = {plan:0, spent:0, planned:0});
+  let startTotal = 0, inc = 0, spent = 0, plannedOut = 0;
   for (const [k, v] of Object.entries(md.start || {})) { ensW(k).start += v; startTotal += v; }
   for (const [k, v] of Object.entries(md.plan || {})) ensC(k).plan += v;
   for (const t of txs || []) {
     const a = t.amount || 0;
     if (t.type === 'wplyw') { ensW(t.wallet).inc += a; inc += a; }
     else if (t.type === 'przelew') { ensW(t.wallet).tout += a; ensW(t.to).tin += a; }
-    else { ensW(t.wallet).spent += a; ensC(t.cat).spent += a; spent += a; }
+    else { ensW(t.wallet).spent += a; ensC(t.cat).spent += a; spent += a; if (t.planned) { ensC(t.cat).planned += a; plannedOut += a; } }
   }
   for (const w of Object.values(W)) w.bal = w.start + w.inc - w.spent - w.tout + w.tin;
   const planTotal = Object.values(C).reduce((s, c) => s + c.plan, 0);
   const funds = startTotal + inc;
-  return { W, C, funds, planTotal, spent, inc, startTotal, toAssign: funds - planTotal, leftTotal: planTotal - spent,
+  return { W, C, funds, planTotal, spent, inc, startTotal, plannedOut, toAssign: funds - planTotal, leftTotal: planTotal - spent,
            balTotal: Object.values(W).reduce((s, w) => s + w.bal, 0) };
 }
 const calc = () => calcFor(S.settings, S.monthDoc, S.tx);
@@ -258,10 +390,10 @@ function render() { renderHeader(); renderMain(); renderChrome(); }
 function renderHeader() {
   const h = $('#hdr');
   const showNav = S.settings && S.tab !== 'ustawienia';
-  const modeTxt = REPORT ? '📄 raport' : '';
+  const tb = `<button class="hbtn" data-act="theme" aria-label="Motyw: ${THEME_LABEL[themePref()]}">${THEME_ICON[themePref()]}</button>`;
   const html = showNav
-    ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div><span class="mode">${modeTxt}</span>`
-    : `<div class="htitle">${S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>`;
+    ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div>${tb}`
+    : `<div class="htitle">${S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
   if (h.innerHTML !== html) h.innerHTML = html;
 }
 
@@ -292,7 +424,7 @@ function backupBanner() {
 function mainHtml() {
   let b = '';
   if (REPORT) b += `<div class="banner info">📄 Raport z ${esc(dateTimeLabel(REPORT.exportedAt))} – tylko podgląd</div>`;
-  if (S.mode === 'loading' || S.settings === undefined) return b + `<div class="empty">Wczytywanie…</div>`;
+  if (S.settings === undefined) return b + `<div class="empty">Wczytywanie…</div>`;
   if (S.settings === null) return b + onboardHtml();
   if (S.tab === 'ustawienia') return b + settingsHtml();
   if (S.monthDoc === undefined) return b + `<div class="empty">Wczytywanie miesiąca…</div>`;
@@ -312,10 +444,14 @@ function onboardHtml() {
   <button class="btn sec" data-act="import">📥 Mam już kopię – wczytaj z pliku</button></div>`;
 }
 
+function pendingRulesFor(m) { return Object.values(S.rules || {}).filter(r => ruleApplies(r, m)); }
+
 function noMonthHtml() {
+  const pr = REPORT ? [] : pendingRulesFor(S.month);
   return `<div class="card center" style="padding:28px 16px"><div style="font-size:42px">🗓️</div>
   <h2 style="margin:8px 0 4px">${esc(monthLabel(S.month))}</h2>
   <p class="sub">${REPORT ? 'Brak budżetu na ten miesiąc.' : 'Budżet na ten miesiąc nie jest jeszcze utworzony.'}</p>
+  ${pr.length ? `<p class="sub">🕒 Czeka ${pr.length} ${pr.length === 1 ? 'zaplanowana pozycja' : 'zaplanowanych pozycji'} (${zl(pr.filter(r => r.type === 'wydatek').reduce((s, r) => s + r.amount, 0))})</p>` : ''}
   ${S.readOnly ? '' : '<button class="btn" data-act="newmonth">Utwórz budżet</button>'}</div>`;
 }
 
@@ -327,6 +463,12 @@ function budgetHtml() {
             : `Zaplanowano o ${zl(-c.toAssign)} więcej, niż macie`;
   let h = `<div class="card hero ${cls}"><div class="k">Do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div><div class="status">${msg}</div>
   <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent)}</b></div><div>Zostało<b>${zl(c.leftTotal)}</b></div></div></div>`;
+  const planned = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
+  if (planned.length) {
+    h += `<h3>🕒 Zaplanowane<span class="neg">${zl(c.plannedOut)}</span></h3><div class="card list">`;
+    for (const t of planned) h += `<div class="plrow">${txRow(t, true, true)}${S.readOnly ? '' : `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>`}</div>`;
+    h += `</div>`;
+  }
   h += `<h3>Na kontach <span>${zl(c.balTotal)}</span></h3><div class="wallets">`;
   for (const w of walletList(c)) h += `<button class="wallet" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b>${zl(c.W[w.id].bal)}</b></button>`;
   h += `</div>`;
@@ -347,23 +489,28 @@ function catRow(x, cc) {
   const pct = cc.plan > 0 ? Math.min(100, cc.spent / cc.plan * 100) : (cc.spent > 0 ? 100 : 0);
   let right, sub, bc = '';
   const noPlan = REPORT ? 'brak planu' : 'brak planu – stuknij, by ustawić';
+  const pl = cc.planned ? ` · <span class="neg">🕒 ${zl(cc.planned)}</span>` : '';
   if (left < 0) { right = `<span class="neg">−${zl(-left)}</span>`; sub = `przekroczono · wydane ${zl(cc.spent)} z ${zl(cc.plan)}`; bc = 'bad'; }
-  else if (x.group === 'stale' && cc.plan > 0 && left === 0) { right = `<span class="pos">✓ opłacone</span>`; sub = `zapłacono ${zl(cc.spent)}`; }
+  else if (x.group === 'stale' && cc.plan > 0 && left === 0 && !cc.planned) { right = `<span class="pos">✓ opłacone</span>`; sub = `zapłacono ${zl(cc.spent)}`; }
   else if (x.group === 'oszczednosci') { right = zl(left); sub = cc.plan ? `odłożone ${zl(cc.spent)} z ${zl(cc.plan)}` : noPlan; }
   else { right = zl(left); sub = cc.plan ? `wydane ${zl(cc.spent)} z ${zl(cc.plan)}` : noPlan; }
-  return `<button class="cat" data-act="cat" data-id="${esc(x.id)}"><span class="emo">${esc(x.emoji || '•')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.name)}</span><span class="cleft">${right}</span></span><span class="bar ${bc}"><i style="width:${pct.toFixed(1)}%"></i></span><span class="sub">${sub}</span></span></button>`;
+  return `<button class="cat" data-act="cat" data-id="${esc(x.id)}"><span class="emo">${esc(x.emoji || '•')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.name)}</span><span class="cleft">${right}</span></span><span class="bar ${bc}"><i style="width:${pct.toFixed(1)}%"></i></span><span class="sub">${sub}${pl}</span></span></button>`;
 }
 
 function txInfo(t) {
   if (t.type === 'wplyw') return {emo:'💵', title:'Wpływ', sub:'na: ' + walletName(t.wallet), amt:`<span class="pos">+${zl(t.amount)}</span>`};
-  if (t.type === 'przelew') return {emo:'🔁', title:`${walletName(t.wallet)} → ${walletName(t.to)}`, sub:'przelew między kontami', amt:zl(t.amount)};
+  if (t.type === 'przelew') return {emo:'🔁', title:`${walletName(t.wallet)} → ${walletName(t.to)}`, sub:'przelew między kontami', amt:t.planned ? `<span class="neg">${zl(t.amount)}</span>` : zl(t.amount)};
   const c = catById(t.cat);
-  return {emo:c?.emoji || '❔', title:catName(t.cat), sub:walletName(t.wallet), amt:`−${zl(t.amount)}`};
+  return {emo:c?.emoji || '❔', title:catName(t.cat), sub:walletName(t.wallet), amt:t.planned ? `<span class="neg">−${zl(t.amount)}</span>` : `−${zl(t.amount)}`};
 }
-function txRow(t) {
+function txRow(t, withDate, inPlannedList) {
   const i = txInfo(t);
-  const sub = esc(i.sub) + (t.note ? ' · ' + esc(t.note) : '');
-  return `<button class="tx" data-act="edittx" data-id="${esc(t.id)}"><span class="emo">${esc(i.emo)}</span><span class="cbody"><span class="cname" style="display:block">${esc(i.title)}</span><span class="sub">${sub}</span></span><span class="amtv">${i.amt}</span></button>`;
+  const r = t.rule && S.rules[t.rule];
+  let tags = '';
+  if (t.planned && !inPlannedList) tags += `<span class="tag${t.type === 'wplyw' ? ' g' : ''}" style="margin:0 6px 0 0">🕒 ${t.type === 'wplyw' ? 'spodziewany' : 'zaplanowana'}</span>`;
+  if (r) tags += `<span class="tag n" style="margin:0 6px 0 0">🔁 ${FREQ_LABEL[r.freq]}</span>`;
+  const sub = (withDate ? esc(shortDay(t.d)) + ' · ' : '') + esc(i.sub) + (t.note ? ' · ' + esc(t.note) : '');
+  return `<button class="tx" data-act="edittx" data-id="${esc(t.id)}"><span class="emo">${esc(i.emo)}</span><span class="cbody"><span class="cname" style="display:block">${esc(i.title)}</span><span class="sub">${tags}${sub}</span></span><span class="amtv">${i.amt}</span></button>`;
 }
 const sortTx = list => list.slice().sort((a, b) => (b.d || '').localeCompare(a.d || '') || (b.ts || 0) - (a.ts || 0));
 
@@ -371,6 +518,7 @@ function historyHtml() {
   const c = calc();
   const list = sortTx(S.tx);
   let h = `<div class="card"><div class="kv"><span>Wpływy w miesiącu</span><b class="pos">+${zl(c.inc)}</b></div><div class="kv"><span>Wydatki w miesiącu</span><b>−${zl(c.spent)}</b></div>
+    ${c.plannedOut ? `<div class="kv"><span>w tym zaplanowane</span><b class="neg">−${zl(c.plannedOut)}</b></div>` : ''}
     ${REPORT ? '' : `<div class="row2"><button class="btn sec" data-act="report">📤 Wyślij raport</button><button class="btn sec" data-act="xlsx">📊 Excel</button></div>`}</div>`;
   if (!list.length) return h + `<div class="empty">Brak operacji w tym miesiącu.${REPORT ? '' : '<br>Dodaj pierwszą przyciskiem +'}</div>`;
   let day = null;
@@ -385,11 +533,21 @@ function settingsHtml() {
   if (!S.draft) S.draft = clone(S.settings);
   const d = S.draft;
   const last = lsGet('budzet-lastExport');
-  let h = `<h3>Kopia i raport</h3><div class="card">
+  const tp = themePref();
+  let h = `<h3>Wygląd</h3><div class="card"><div class="seg">${['auto','light','dark'].map(k => `<button class="${tp === k ? 'on' : ''}" data-act="settheme" data-v="${k}">${THEME_ICON[k]} ${THEME_LABEL[k]}</button>`).join('')}</div></div>`;
+  h += `<h3>Kopia i raport</h3><div class="card">
     <p class="sub" style="margin-top:0">Dane są zapisane tylko w tym telefonie. Raport to jeden plik: otworzysz go na komputerze w przeglądarce (podgląd całego budżetu), a w razie zmiany telefonu wczytasz go tu jako kopię.</p>
     <p class="sub">Ostatni raport: <b>${last ? esc(dateTimeLabel(Number(last))) : 'jeszcze nie wysłano'}</b></p>
     <button class="btn" data-act="report">📤 Wyślij raport (mail)</button>
     <div class="row2"><button class="btn sec" data-act="xlsx">📊 Excel – bieżący miesiąc</button><button class="btn sec" data-act="import">📥 Wczytaj z pliku</button></div></div>`;
+  const rules = Object.values(S.rules || {}).sort((a, b) => (a.freq + a.from).localeCompare(b.freq + b.from));
+  h += `<h3>Płatności cykliczne i przypomnienia</h3><div class="card">`;
+  if (!rules.length) h += `<p class="sub" style="margin:0">Brak. Przy dodawaniu operacji wybierz „Powtarzaj: co miesiąc / co rok”, a pozycja sama pojawi się w kolejnych budżetach jako zaplanowana.</p>`;
+  for (const r of rules) {
+    const c = r.type === 'wydatek' ? catById(r.cat) : null;
+    h += `<div class="rrow"><span class="emo">${esc(c?.emoji || (r.type === 'wplyw' ? '💵' : r.type === 'przelew' ? '🔁' : '❔'))}</span><span class="cbody"><span class="cname" style="display:block">${esc(ruleTitle(r))}${r.note ? ' · ' + esc(r.note) : ''}</span><span class="sub">${esc(ruleWhen(r))} · ${zl(r.amount)}</span></span><button class="ib del" style="width:40px" data-act="rdel" data-id="${esc(r.id)}" aria-label="Usuń">✕</button></div>`;
+  }
+  h += `</div>`;
   h += `<h3>Konta / osoby</h3><div class="card">`;
   d.wallets.forEach((w, i) => h += `<div class="srow w"><input value="${esc(w.name)}" data-in="wname" data-i="${i}" placeholder="Nazwa"><button class="ib del" data-act="wdel" data-i="${i}" aria-label="Usuń">✕</button></div>`);
   h += `<button class="chip" style="margin-top:10px" data-act="wadd">+ Dodaj konto</button></div>`;
@@ -398,9 +556,42 @@ function settingsHtml() {
     <div class="line2"><select data-in="cgroup" data-i="${i}">${Object.entries(GROUP_SHORT).map(([g, l]) => `<option value="${g}"${(c.group || 'zmienne') === g ? ' selected' : ''}>${l}</option>`).join('')}</select><button class="ib" data-act="cup" data-i="${i}" aria-label="W górę">↑</button><button class="ib" data-act="cdown" data-i="${i}" aria-label="W dół">↓</button></div></div>`);
   h += `<button class="chip" style="margin-top:10px" data-act="cadd">+ Dodaj kategorię</button></div>`;
   h += `<button class="btn" data-act="ssave">${S.draftDirty ? 'Zapisz zmiany •' : 'Zapisz zmiany'}</button>`;
+  h += `<h3>Bezpieczeństwo</h3><div class="card"><button class="btn sec" style="margin-top:0" data-act="pinchange">🔒 Zmień PIN</button>
+    <p class="sub">Aplikacja blokuje się przy każdym uruchomieniu i po minucie w tle.</p></div>`;
+  h += updateHtml();
   h += `<div class="card" style="margin-top:22px"><b>Jak to działa</b>
-    <p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie, aż „Do rozdysponowania” pokaże 0 zł. Każdy wydatek (przycisk +) zmniejsza kategorię i konto naraz, więc bilans zostaje na zero. Wpływ w trakcie miesiąca zwiększa pulę do rozdysponowania.</p></div>`;
+    <p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie, aż „Do rozdysponowania” pokaże 0 zł. Każdy wydatek (przycisk +) zmniejsza kategorię i konto naraz. Zaplanowane płatności (czerwone) są od razu odliczone – po zapłaceniu stuknij „✓ Zapłacone”.</p></div>`;
   return h;
+}
+
+function updateHtml() {
+  const r = S.remote;
+  let info;
+  if (!r) info = `<p class="sub">Sprawdzam najnowszą wersję…</p>`;
+  else if (r.error) info = `<p class="sub">Nie udało się sprawdzić – brak internetu?</p><button class="btn sec" data-act="updcheck">🔄 Sprawdź ponownie</button>`;
+  else if (verNewer(r.version, APP_VERSION)) info = `<div class="kv"><span>Najnowsza</span><b class="pos">${esc(r.version)} (${esc(fmtDate(r.date))})</b></div>
+      ${(r.changes || []).length ? `<p class="sub"><b>Co nowego:</b><br>${r.changes.map(c => '• ' + esc(c)).join('<br>')}</p>` : ''}
+      <button class="btn" data-act="update">⬇️ Aktualizuj do ${esc(r.version)}</button><span class="hint">Twoje kwoty i ustawienia zostaną bez zmian.</span>`;
+  else info = `<div class="kv"><span>Najnowsza</span><b>${esc(r.version)}</b></div><p class="sub">✓ Masz aktualną wersję.</p><button class="btn sec" data-act="updcheck">🔄 Sprawdź ponownie</button>`;
+  return `<h3>Aktualizacja</h3><div class="card"><div class="kv"><span>Twoja wersja</span><b>${APP_VERSION} (${esc(fmtDate(APP_DATE))})</b></div>${info}</div>`;
+}
+async function checkUpdate() {
+  S.remote = null; if (S.tab === 'ustawienia') renderMain(true);
+  try {
+    const res = await fetch('version.json?t=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error(res.status);
+    S.remote = await res.json();
+  } catch (e) { S.remote = {error:true}; }
+  if (S.tab === 'ustawienia') renderMain(true);
+}
+async function doUpdate() {
+  toast('Aktualizuję…');
+  try {
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+    if (window.caches) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+  } catch (e) {}
+  setTimeout(() => location.reload(), 300);
 }
 
 /* ---------- sheets & dialogs ---------- */
@@ -409,14 +600,16 @@ function closeSheet() { $('#ov').classList.remove('open'); $('#sheet').innerHTML
 $('#ov').addEventListener('click', e => { if (e.target.id === 'ov') closeSheet(); });
 const head = t => `<div class="shead"><h2>${t}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>`;
 
-function ask(text, ok = 'Usuń', danger = true) {
+/* options: [{label, cls}] → resolves index or -1 */
+function choose(text, options) {
   return new Promise(res => {
     const d = $('#dlg');
-    d.innerHTML = `<div class="dlg"><p>${esc(text)}</p><div class="row2"><button class="btn sec" data-r="0">Anuluj</button><button class="btn ${danger ? 'danger' : ''}" data-r="1">${esc(ok)}</button></div></div>`;
+    d.innerHTML = `<div class="dlg"><p>${esc(text)}</p>${options.map((o, i) => `<button class="btn ${o.cls || ''}" data-r="${i}">${esc(o.label)}</button>`).join('')}<button class="btn sec" data-r="-1">Anuluj</button></div>`;
     d.classList.add('open');
-    d.onclick = e => { const b = e.target.closest('[data-r]'); if (!b && e.target !== d) return; d.classList.remove('open'); d.onclick = null; res(!!b && b.dataset.r === '1'); };
+    d.onclick = e => { const b = e.target.closest('[data-r]'); if (!b && e.target !== d) return; d.classList.remove('open'); d.onclick = null; res(b ? Number(b.dataset.r) : -1); };
   });
 }
+const ask = async (text, ok = 'Usuń', danger = true) => (await choose(text, [{label:ok, cls:danger ? 'danger' : ''}])) === 0;
 let toastT;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
 
@@ -432,9 +625,9 @@ function openCat(id) {
     <span class="sub" id="planhint" style="text-align:center;margin-top:6px"></span>
     <div class="row2"><button class="btn sec" data-act="planfill">Wyrównaj bilans</button><button class="btn" data-act="plansave">Zapisz plan</button></div>
     <div class="card" style="margin-top:16px">`}
-    <div class="kv"><span>Wydane</span><b>${zl(cc.spent)}</b></div><div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
+    <div class="kv"><span>Wydane</span><b>${zl(cc.spent)}</b></div>${cc.planned ? `<div class="kv"><span>w tym zaplanowane</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
     ${S.readOnly || !catById(id) ? '' : `<button class="btn sec" data-act="addtx" data-cat="${esc(id)}">+ Dodaj wydatek</button>`}
-    ${list.length ? `<div class="dhead">Operacje w tym miesiącu</div><div class="card list">${list.map(txRow).join('')}</div>` : ''}`,
+    ${list.length ? `<div class="dhead">Operacje w tym miesiącu</div><div class="card list">${list.map(t => txRow(t, true)).join('')}</div>` : ''}`,
     {kind:'cat', id, basePlan:cc.plan, baseAssign:c.toAssign});
   updatePlanHint();
 }
@@ -468,8 +661,12 @@ function openTx(o) {
   const wallets = S.settings.wallets;
   const lw = lsGet('budzet-lastWallet');
   const defW = o.wallet || (wallets.find(w => w.id === lw) ? lw : wallets[0]?.id) || null;
-  S.txDraft = o.edit ? Object.assign({amountStr:toInput(o.edit.amount)}, clone(o.edit))
-    : {id:null, type:o.type || 'wydatek', cat:o.cat || null, wallet:defW, to:null, amountStr:'', d:defaultDate(), note:''};
+  if (o.edit) {
+    const r = o.edit.rule && S.rules[o.edit.rule];
+    S.txDraft = Object.assign({amountStr:toInput(o.edit.amount), repeat:r ? r.freq : 'none'}, clone(o.edit));
+  } else {
+    S.txDraft = {id:null, type:o.type || 'wydatek', cat:o.cat || null, wallet:defW, to:null, amountStr:'', d:defaultDate(), note:'', planned:false, repeat:'none'};
+  }
   if (S.txDraft.type === 'przelew' && !S.txDraft.to) S.txDraft.to = wallets.find(w => w.id !== S.txDraft.wallet)?.id || null;
   renderTxSheet(true);
 }
@@ -482,7 +679,7 @@ function renderTxSheet(focus) {
   const types = [['wydatek','Wydatek'], ['wplyw','Wpływ'], ['przelew','Przelew']];
   let h = head(t.id ? 'Edytuj operację' : 'Nowa operacja');
   h += `<div class="seg">${types.map(([k, l]) => `<button class="${t.type === k ? 'on' : ''}" data-act="ttype" data-v="${k}">${l}</button>`).join('')}</div>`;
-  h += `<input class="amt" id="tamt" inputmode="decimal" placeholder="0,00 zł" value="${esc(t.amountStr)}" style="margin-top:12px">`;
+  h += `<input class="amt" id="tamt" inputmode="decimal" placeholder="0,00 zł" value="${esc(t.amountStr)}" style="margin-top:12px${t.planned && t.type !== 'wplyw' ? ';color:var(--bad)' : t.type === 'wplyw' ? ';color:var(--ok)' : ''}">`;
   if (t.type === 'wydatek') {
     h += `<label class="f">Kategoria</label><div class="chips">${S.settings.categories.map(x => {
       const cc = c.C[x.id]; const left = cc.plan - cc.spent + (orig && orig.type === 'wydatek' && orig.cat === x.id ? orig.amount : 0);
@@ -494,9 +691,18 @@ function renderTxSheet(focus) {
     h += `<label class="f">Z konta</label>${chipsW('wallet', t.wallet)}<label class="f">Na konto</label>${chipsW('to', t.to, t.wallet)}`;
   }
   h += `<div class="row2"><div><label class="f">Data</label><input type="date" id="tdate" value="${esc(t.d)}" min="${S.month}-01" max="${lastDay(S.month)}"></div>
-        <div><label class="f">Notatka</label><input id="tnote" value="${esc(t.note || '')}" placeholder="opcjonalnie" maxlength="80"></div></div>`;
+        <div><label class="f">Notatka</label><input id="tnote" value="${esc(t.note || '')}" placeholder="np. OC auta" maxlength="80"></div></div>`;
+  const inc = t.type === 'wplyw';
+  h += `<button class="toggle${t.planned ? ' on' : ''}${inc ? ' g' : ''}" data-act="tplanned"><span><b>🕒 ${inc ? 'Spodziewany wpływ' : 'Zaplanowana'}</b><span class="sub">${inc ? 'jeszcze nie wpłynął' : 'zlecenie stałe / płatność do zrobienia – na czerwono'}</span></span><span class="sw"></span></button>`;
+  h += `<label class="f">Powtarzaj</label><div class="seg">${[['none','Nie'], ['m','Co miesiąc'], ['y','Co rok']].map(([k, l]) => `<button class="${t.repeat === k ? 'on' : ''}" data-act="trepeat" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if (t.repeat === 'm') h += `<span class="hint">Pojawi się jako zaplanowana w każdym kolejnym miesiącu, od ${esc(monthLabel(shiftMonth(S.month, 1)))}.</span>`;
+  if (t.repeat === 'y') h += `<span class="hint">Przypomni się jako zaplanowana w ${esc(monthLabel(shiftMonth(S.month, 12)))} i co rok w tym miesiącu.</span>`;
+  if (t.id && orig && orig.rule && S.rules[orig.rule] && t.repeat !== 'none') h += `<span class="hint">Zmiany kwoty, kategorii czy konta obejmą też kolejne miesiące.</span>`;
   h += `<button class="btn" data-act="tsave">${t.id ? 'Zapisz zmiany' : 'Dodaj'}</button>`;
-  if (t.id) h += `<button class="btn danger" data-act="tdel">Usuń operację</button>`;
+  if (t.id) {
+    h += `<label class="f">Skopiuj jako zaplanowaną</label><div class="row2" style="margin-top:-6px"><button class="btn sec" data-act="tcopy" data-v="1">📅 Na następny miesiąc</button><button class="btn sec" data-act="tcopy" data-v="12">📅 Za rok</button></div>`;
+    h += `<button class="btn danger" data-act="tdel">Usuń operację</button>`;
+  }
   openSheet(h, {kind:'tx'});
   if (focus && !t.id) setTimeout(() => { try { $('#tamt').focus(); } catch (e) {} }, 220);
 }
@@ -504,6 +710,24 @@ function syncTxInputs() {
   const t = S.txDraft; if (!t) return;
   const a = $('#tamt'), d = $('#tdate'), n = $('#tnote');
   if (a) t.amountStr = a.value; if (d) t.d = d.value; if (n) t.note = n.value;
+}
+function validateDraft() {
+  const t = S.txDraft;
+  const amount = parseZl(t.amountStr);
+  if (isNaN(amount) || amount <= 0) return 'Wpisz kwotę większą od zera';
+  if (!t.d || t.d.slice(0, 7) !== S.month) return 'Data musi być w miesiącu: ' + monthLabel(S.month);
+  if (!t.wallet) return 'Wybierz konto';
+  if (t.type === 'wydatek' && !t.cat) return 'Wybierz kategorię';
+  if (t.type === 'przelew' && (!t.to || t.to === t.wallet)) return 'Wybierz drugie konto';
+  return null;
+}
+function recFromDraft() {
+  const t = S.txDraft;
+  const rec = {id:t.id || uid(), m:S.month, d:t.d, type:t.type, amount:parseZl(t.amountStr), wallet:t.wallet, note:(t.note || '').trim(), ts:t.ts || Date.now()};
+  if (t.type === 'wydatek') rec.cat = t.cat;
+  if (t.type === 'przelew') rec.to = t.to;
+  if (t.planned) rec.planned = true;
+  return rec;
 }
 
 /* new month sheet */
@@ -514,11 +738,17 @@ async function openNewMonth() {
   const ptx = prevKey ? await store.getTx(prevKey) : [];
   const pc = pd ? calcFor(S.settings, pd, ptx) : null;
   const planSum = pd ? Object.values(pd.plan || {}).reduce((s, v) => s + v, 0) : 0;
+  const pr = pendingRulesFor(S.month);
   let h = head('Budżet: ' + esc(monthLabel(S.month)));
   h += `<label class="f">Środki na start${pc ? ` (stan kont na koniec: ${esc(monthLabel(prevKey))})` : ''}</label>`;
   for (const w of S.settings.wallets) h += `<div class="srow w" style="grid-template-columns:110px 1fr"><span>${esc(w.name)}</span><input inputmode="decimal" data-nw="${esc(w.id)}" placeholder="0,00" value="${pc ? toInput(pc.W[w.id]?.bal || 0) : ''}"></div>`;
   if (pd) h += `<label class="chk" style="margin-top:10px"><input type="checkbox" id="nmcopy" checked> Skopiuj plan z: ${esc(monthLabel(prevKey))} (${zl(planSum)})</label>`;
   else h += `<p class="sub">Plan kategorii ustawisz po utworzeniu – stuknij kategorię, żeby wpisać kwotę.</p>`;
+  if (pr.length) {
+    h += `<label class="f">🕒 Zostaną dodane jako zaplanowane</label><div class="card list">`;
+    for (const r of pr) h += `<div class="kv"><span>${esc(ruleTitle(r))}${r.note ? ' · ' + esc(r.note) : ''} <span class="tag n">${FREQ_LABEL[r.freq]}</span></span><b class="${r.type === 'wplyw' ? 'pos' : 'neg'}">${r.type === 'wplyw' ? '+' : r.type === 'wydatek' ? '−' : ''}${zl(r.amount)}</b></div>`;
+    h += `</div>`;
+  }
   h += `<button class="btn" data-act="nmcreate">Utwórz budżet</button>`;
   openSheet(h, {kind:'new', plan: pd ? clone(pd.plan || {}) : {}});
 }
@@ -537,7 +767,7 @@ async function shareOrDownload(blob, name, title) {
   return 'downloaded';
 }
 function buildReport() {
-  const payload = Object.assign(store.getAll(), {exportedAt:new Date().toISOString(), month:S.month, app:'budzet-domowy', v:1});
+  const payload = Object.assign(store.getAll(), {exportedAt:new Date().toISOString(), month:S.month, app:'budzet-domowy', v:2});
   const json = JSON.stringify(payload).replace(/</g, '\\u003c');
   if (PRISTINE.indexOf(REPORT_TAG) < 0) throw new Error('template');
   return PRISTINE.replace(REPORT_TAG, '<script id="report-data" type="application/json">' + json + '</' + 'script>');
@@ -562,20 +792,26 @@ function loadXlsx() {
 async function exportXlsx() {
   try { await loadXlsx(); } catch (e) { toast('Nie udało się wczytać modułu Excel'); return; }
   const c = calc(), st = S.settings, X = window.XLSX;
-  const sum = [[`Budżet: ${monthLabel(S.month)}`], [], ['Kategoria', 'Grupa', 'Plan', 'Wydane', 'Zostało']];
-  for (const x of st.categories) { const cc = c.C[x.id]; sum.push([x.name, GROUP_SHORT[x.group || 'zmienne'], cc.plan / 100, cc.spent / 100, (cc.plan - cc.spent) / 100]); }
-  for (const [id, v] of Object.entries(c.C)) if (v.orphan && (v.plan || v.spent)) sum.push(['(usunięta kategoria)', '', v.plan / 100, v.spent / 100, (v.plan - v.spent) / 100]);
-  sum.push(['RAZEM', '', c.planTotal / 100, c.spent / 100, c.leftTotal / 100], []);
+  const sum = [[`Budżet: ${monthLabel(S.month)}`], [], ['Kategoria', 'Grupa', 'Plan', 'Wydane', 'w tym zaplanowane', 'Zostało']];
+  for (const x of st.categories) { const cc = c.C[x.id]; sum.push([x.name, GROUP_SHORT[x.group || 'zmienne'], cc.plan / 100, cc.spent / 100, cc.planned / 100, (cc.plan - cc.spent) / 100]); }
+  for (const [id, v] of Object.entries(c.C)) if (v.orphan && (v.plan || v.spent)) sum.push(['(usunięta kategoria)', '', v.plan / 100, v.spent / 100, v.planned / 100, (v.plan - v.spent) / 100]);
+  sum.push(['RAZEM', '', c.planTotal / 100, c.spent / 100, c.plannedOut / 100, c.leftTotal / 100], []);
   sum.push(['Konto', 'Na start', 'Wpływy', 'Wydatki', 'Przelewy', 'Stan teraz']);
   for (const w of walletList(c)) { const x = c.W[w.id]; sum.push([w.name, x.start / 100, x.inc / 100, x.spent / 100, (x.tin - x.tout) / 100, x.bal / 100]); }
   sum.push([], ['Do rozdysponowania', c.toAssign / 100]);
-  const ops = [['Data', 'Typ', 'Kategoria', 'Konto', 'Na konto', 'Kwota', 'Notatka']];
-  for (const t of sortTx(S.tx).reverse()) ops.push([t.d, t.type === 'wplyw' ? 'Wpływ' : t.type === 'przelew' ? 'Przelew' : 'Wydatek',
-    t.type === 'wydatek' ? catName(t.cat) : '', walletName(t.wallet), t.type === 'przelew' ? walletName(t.to) : '',
-    (t.type === 'wydatek' ? -1 : 1) * t.amount / 100, t.note || '']);
+  const ops = [['Data', 'Typ', 'Kategoria', 'Konto', 'Na konto', 'Kwota', 'Status', 'Powtarzanie', 'Notatka']];
+  const rowsMeta = [];
+  for (const t of sortTx(S.tx).reverse()) {
+    const r = t.rule && S.rules[t.rule];
+    ops.push([t.d, t.type === 'wplyw' ? 'Wpływ' : t.type === 'przelew' ? 'Przelew' : 'Wydatek',
+      t.type === 'wydatek' ? catName(t.cat) : '', walletName(t.wallet), t.type === 'przelew' ? walletName(t.to) : '',
+      (t.type === 'wydatek' ? -1 : 1) * t.amount / 100, t.planned ? 'zaplanowana' : '', r ? FREQ_LABEL[r.freq] : '', t.note || '']);
+    rowsMeta.push(t);
+  }
   const money = ws => { for (const k in ws) if (k[0] !== '!' && ws[k].t === 'n') ws[k].z = '#,##0.00 "zł"'; return ws; };
-  const ws1 = money(X.utils.aoa_to_sheet(sum)); ws1['!cols'] = [{wch:24}, {wch:14}, {wch:13}, {wch:13}, {wch:13}, {wch:13}];
-  const ws2 = money(X.utils.aoa_to_sheet(ops)); ws2['!cols'] = [{wch:11}, {wch:9}, {wch:18}, {wch:14}, {wch:14}, {wch:13}, {wch:30}];
+  const ws1 = money(X.utils.aoa_to_sheet(sum)); ws1['!cols'] = [{wch:24}, {wch:14}, {wch:13}, {wch:13}, {wch:17}, {wch:13}];
+  const ws2 = money(X.utils.aoa_to_sheet(ops)); ws2['!cols'] = [{wch:11}, {wch:9}, {wch:18}, {wch:14}, {wch:14}, {wch:13}, {wch:12}, {wch:12}, {wch:30}];
+  rowsMeta.forEach((t, i) => { const cell = ws2['F' + (i + 2)]; if (cell) cell.z = t.type === 'wplyw' ? '[Color10]#,##0.00 "zł"' : t.planned ? '[Red]#,##0.00 "zł"' : '#,##0.00 "zł"'; });
   const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws1, 'Podsumowanie'); X.utils.book_append_sheet(wb, ws2, 'Operacje');
   const out = X.write(wb, {bookType:'xlsx', type:'array'});
   const r = await shareOrDownload(new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `budzet-${S.month}.xlsx`, 'Budżet ' + monthLabel(S.month));
@@ -597,21 +833,113 @@ async function importFile(file) {
   S.tab = 'budzet'; render();
 }
 
+/* ---------- PIN ---------- */
+const PIN_KEY = 'budzet-pin';
+const L = {mode:null, step:0, buf:'', first:'', fails:0, until:0, busy:false};
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const pinSupported = () => !!(window.crypto && crypto.subtle && window.isSecureContext !== false);
+function pinRec() { try { return JSON.parse(lsGet(PIN_KEY) || 'null'); } catch (e) { return null; } }
+async function pinHash(pin, salt, iter) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+  return b64(await crypto.subtle.deriveBits({name:'PBKDF2', salt:b64d(salt), iterations:iter, hash:'SHA-256'}, k, 256));
+}
+async function pinSave(pin) {
+  const salt = b64(crypto.getRandomValues(new Uint8Array(16))), iter = 150000;
+  localStorage.setItem(PIN_KEY, JSON.stringify({salt, iter, hash:await pinHash(pin, salt, iter), len:pin.length}));
+}
+async function pinCheck(pin) { const r = pinRec(); return !!r && (await pinHash(pin, r.salt, r.iter)) === r.hash; }
+const lockVerifying = () => L.mode === 'unlock' || (L.mode === 'change' && L.step === 0);
+const lockNewStep = () => (L.mode === 'setup' && L.step === 0) || (L.mode === 'change' && L.step === 1);
+function lockOpen(mode) {
+  L.mode = mode; L.step = 0; L.buf = ''; L.first = '';
+  closeSheet(); $('#dlg').classList.remove('open');
+  document.body.classList.add('locked'); $('#lock').classList.remove('hidden'); lockDraw();
+}
+function lockClose() { L.mode = null; document.body.classList.remove('locked'); $('#lock').classList.add('hidden'); render(); }
+function lockDraw(msg) {
+  const m = L.mode, s = L.step;
+  const [title, sub] = m === 'unlock' ? ['Wpisz PIN', '']
+    : m === 'setup' ? (s === 0 ? ['Ustaw PIN', '4–6 cyfr. Będzie potrzebny przy każdym otwarciu aplikacji.'] : ['Powtórz PIN', ''])
+    : (s === 0 ? ['Obecny PIN', ''] : s === 1 ? ['Nowy PIN', '4–6 cyfr'] : ['Powtórz nowy PIN', '']);
+  $('#lockTitle').textContent = title; $('#lockSub').textContent = sub;
+  const n = lockVerifying() ? (pinRec()?.len || 4) : (L.step === (m === 'setup' ? 1 : 2) ? L.first.length : Math.max(4, L.buf.length));
+  $('#dots').innerHTML = Array.from({length:n}, (_, i) => `<i class="${i < L.buf.length ? 'f' : ''}"></i>`).join('');
+  $('#lockMsg').textContent = msg || '';
+  $('#padOk').classList.toggle('inv', !lockNewStep());
+  $('#lockForgot').classList.toggle('hidden', m !== 'unlock');
+  $('#lockCancel').classList.toggle('hidden', m !== 'change');
+}
+function lockShake() { const b = $('#lockbox'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+async function lockKey(k) {
+  if (!L.mode || L.busy) return;
+  if (Date.now() < L.until) { lockDraw(`Za dużo prób. Spróbuj za ${Math.ceil((L.until - Date.now()) / 1000)} s`); return; }
+  if (k === 'del') { L.buf = L.buf.slice(0, -1); lockDraw(); return; }
+  if (k === 'ok') { if (lockNewStep()) await lockSubmit(); return; }
+  if (L.buf.length >= 6) return;
+  L.buf += k; lockDraw();
+  const target = lockVerifying() ? (pinRec()?.len || 4) : lockNewStep() ? 0 : L.first.length;
+  if (target && L.buf.length === target) setTimeout(lockSubmit, 120);
+}
+async function lockSubmit() {
+  const pin = L.buf;
+  if (lockVerifying()) {
+    L.busy = true; const ok = await pinCheck(pin); L.busy = false;
+    if (!ok) { L.buf = ''; if (++L.fails >= 5) { L.until = Date.now() + 30000; L.fails = 0; } lockShake(); lockDraw('Błędny PIN'); return; }
+    L.fails = 0;
+    if (L.mode === 'unlock') { lockClose(); return; }
+    L.step = 1; L.buf = ''; lockDraw(); return;
+  }
+  if (lockNewStep()) {
+    if (pin.length < 4) { lockShake(); lockDraw('PIN musi mieć 4–6 cyfr'); return; }
+    L.first = pin; L.step++; L.buf = ''; lockDraw(); return;
+  }
+  if (pin !== L.first) { L.step--; L.buf = ''; L.first = ''; lockShake(); lockDraw('PIN-y się różnią – spróbuj jeszcze raz'); return; }
+  L.busy = true;
+  try { await pinSave(pin); } catch (e) { L.busy = false; lockDraw('Nie udało się zapisać PIN-u'); return; }
+  L.busy = false;
+  const change = L.mode === 'change'; lockClose(); toast(change ? 'PIN zmieniony' : 'PIN ustawiony');
+}
+$('#pad').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) lockKey(b.dataset.k); });
+document.addEventListener('keydown', e => {
+  if (!L.mode) return;
+  if (/^[0-9]$/.test(e.key)) lockKey(e.key); else if (e.key === 'Backspace') lockKey('del'); else if (e.key === 'Enter') lockKey('ok');
+});
+$('#lockCancel').addEventListener('click', () => { if (L.mode === 'change') lockClose(); });
+$('#lockForgot').addEventListener('click', async () => {
+  if (!(await ask('Bez PIN-u nie da się odblokować aplikacji. Możesz usunąć wszystkie dane z tego telefonu, ustawić nowy PIN i wczytać ostatni raport (przycisk „Mam już kopię”). Usunąć dane?', 'Usuń dane'))) return;
+  if (!(await ask('Na pewno? Tego nie można cofnąć.', 'Tak, usuń wszystko'))) return;
+  ['budzet-domowy-v1', PIN_KEY, 'budzet-lastExport', 'budzet-lastWallet'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  location.reload();
+});
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (REPORT || !pinRec()) return;
+  if (document.hidden) hiddenAt = Date.now();
+  else if (!L.mode && hiddenAt && Date.now() - hiddenAt > 60000) lockOpen('unlock');
+});
+
 /* ---------- actions ---------- */
 function setMonth(k) { if (k === S.month) return; S.month = k; subMonth(); render(); }
+const RO_OK = ['close','tab','mprev','mnext','mtoday','cat','wallet','edittx','theme'];
 
 document.addEventListener('click', async e => {
-  const el = e.target.closest('[data-act]'); if (!el) return;
+  const el = e.target.closest('[data-act]'); if (!el || L.mode) return;
   const a = el.dataset.act, ds = el.dataset;
-  if (S.readOnly && !['close','tab','mprev','mnext','mtoday','cat','wallet','edittx'].includes(a)) return;
+  if (S.readOnly && !RO_OK.includes(a)) return;
   switch (a) {
     case 'close': closeSheet(); break;
     case 'tab':
-      if (ds.tab === 'ustawienia' && S.tab !== 'ustawienia') { S.draft = null; S.draftDirty = false; }
+      if (ds.tab === 'ustawienia' && S.tab !== 'ustawienia') { S.draft = null; S.draftDirty = false; S.tab = ds.tab; window.scrollTo(0, 0); render(); checkUpdate(); break; }
       S.tab = ds.tab; window.scrollTo(0, 0); render(); break;
     case 'mprev': setMonth(shiftMonth(S.month, -1)); break;
     case 'mnext': setMonth(shiftMonth(S.month, 1)); break;
     case 'mtoday': setMonth(REPORT ? (REPORT.month || CUR) : CUR); break;
+    case 'theme': { const order = ['auto','light','dark']; lsSet('budzet-theme', order[(order.indexOf(themePref()) + 1) % 3]); applyTheme(); toast('Motyw: ' + THEME_LABEL[themePref()]); render(); if (S.tab === 'ustawienia') renderMain(true); break; }
+    case 'settheme': lsSet('budzet-theme', ds.v); applyTheme(); render(); renderMain(true); break;
+    case 'pinchange': lockOpen('change'); break;
+    case 'updcheck': checkUpdate(); break;
+    case 'update': doUpdate(); break;
 
     case 'report': sendReport(); break;
     case 'xlsx': exportXlsx(); break;
@@ -635,7 +963,10 @@ document.addEventListener('click', async e => {
       const plan = {};
       if (copy) for (const [k, v] of Object.entries(S.sheet.plan || {})) if (catById(k) && v) plan[k] = v;
       const m = S.month; closeSheet();
-      await write(store.saveMonth(m, {start, plan, created:Date.now()}), 'Budżet utworzony');
+      if (await write(store.saveMonth(m, {start, plan, created:Date.now()}))) {
+        const n = await applyRules(m, pendingRulesFor(m));
+        toast(n ? `Budżet utworzony · dodano ${n} zaplanowane` : 'Budżet utworzony');
+      }
       break;
     }
 
@@ -660,6 +991,8 @@ document.addEventListener('click', async e => {
       break;
     }
 
+    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
+
     case 'addtx':
       if (!S.settings.wallets.length) { toast('Najpierw dodaj konto w Ustawieniach'); return; }
       openTx({cat:ds.cat, type:ds.type, wallet:ds.wallet}); break;
@@ -670,26 +1003,55 @@ document.addEventListener('click', async e => {
     case 'pick': syncTxInputs(); S.txDraft[ds.f] = ds.v;
       if (ds.f === 'wallet' && S.txDraft.type === 'przelew' && S.txDraft.to === ds.v) S.txDraft.to = S.settings.wallets.find(w => w.id !== ds.v)?.id || null;
       renderTxSheet(false); break;
+    case 'tplanned': syncTxInputs(); S.txDraft.planned = !S.txDraft.planned; renderTxSheet(false); break;
+    case 'trepeat': syncTxInputs(); S.txDraft.repeat = ds.v; if (ds.v !== 'none' && !S.txDraft.id) S.txDraft.planned = S.txDraft.planned; renderTxSheet(false); break;
     case 'tsave': {
-      syncTxInputs(); const t = S.txDraft;
-      const amount = parseZl(t.amountStr);
-      if (isNaN(amount) || amount <= 0) { toast('Wpisz kwotę większą od zera'); return; }
-      if (!t.d || t.d.slice(0, 7) !== S.month) { toast('Data musi być w miesiącu: ' + monthLabel(S.month)); return; }
-      if (!t.wallet) { toast('Wybierz konto'); return; }
-      if (t.type === 'wydatek' && !t.cat) { toast('Wybierz kategorię'); return; }
-      if (t.type === 'przelew' && (!t.to || t.to === t.wallet)) { toast('Wybierz drugie konto'); return; }
-      const rec = {id:t.id || uid(), m:S.month, d:t.d, type:t.type, amount, wallet:t.wallet, note:(t.note || '').trim(), ts:t.ts || Date.now()};
-      if (t.type === 'wydatek') rec.cat = t.cat;
-      if (t.type === 'przelew') rec.to = t.to;
+      syncTxInputs(); const err = validateDraft(); if (err) { toast(err); return; }
+      const t = S.txDraft, rec = recFromDraft();
+      const oldRule = t.rule && S.rules[t.rule] ? S.rules[t.rule] : null;
+      let newRule = null;
+      if (oldRule) {
+        if (t.repeat === 'none') { await store.deleteRule(oldRule.id); }
+        else {
+          const upd = ruleFromTx(rec, t.repeat, {id:oldRule.id, from:oldRule.from});
+          if (oldRule.freq !== t.repeat) newRule = upd;
+          await store.saveRule(upd); rec.rule = oldRule.id;
+        }
+      } else if (t.repeat !== 'none') {
+        newRule = ruleFromTx(rec, t.repeat); await store.saveRule(newRule); rec.rule = newRule.id;
+      }
       lsSet('budzet-lastWallet', t.wallet);
       const isNew = !t.id; closeSheet();
-      await write(store.saveTx(rec), isNew ? 'Dodano' : 'Zapisano');
+      if (await write(store.saveTx(rec), isNew ? 'Dodano' : 'Zapisano') && newRule) {
+        const added = await applyRuleToExisting(newRule);
+        if (added.length) toast('Dodano też do: ' + added.map(monthLabel).join(', '));
+      }
+      break;
+    }
+    case 'tcopy': {
+      syncTxInputs(); const err = validateDraft(); if (err) { toast(err); return; }
+      const rec = recFromDraft(), target = shiftMonth(S.month, Number(ds.v));
+      const r = ruleFromTx(rec, 'once', {target});
+      await store.saveRule(r);
+      const added = await applyRuleToExisting(r);
+      closeSheet();
+      toast(added.length ? `Dodano jako zaplanowaną: ${monthLabel(target)}` : `Pojawi się po utworzeniu budżetu na ${monthLabel(target)}`);
       break;
     }
     case 'tdel': {
-      const id = S.txDraft.id;
-      if (!(await ask('Usunąć tę operację?'))) return;
-      closeSheet(); await write(store.deleteTx(id), 'Usunięto');
+      const t = S.txDraft, r = t.rule && S.rules[t.rule];
+      if (r) {
+        const ch = await choose('Ta operacja powtarza się ' + FREQ_LABEL[r.freq] + '. Co usunąć?', [{label:'Tylko tę', cls:'danger'}, {label:'Tę i przyszłe powtórzenia', cls:'danger'}]);
+        if (ch < 0) return;
+        if (ch === 1) await store.deleteRule(r.id);
+      } else if (!(await ask('Usunąć tę operację?'))) return;
+      closeSheet(); await write(store.deleteTx(t.id), 'Usunięto');
+      break;
+    }
+    case 'rdel': {
+      const r = S.rules[ds.id]; if (!r) return;
+      if (!(await ask(`Usunąć „${ruleTitle(r)}” (${ruleWhen(r)})? Już dodane operacje zostaną.`))) return;
+      await write(store.deleteRule(r.id), 'Usunięto'); renderMain(true);
       break;
     }
 
@@ -739,8 +1101,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id
 
 /* ---------- start ---------- */
 store = REPORT ? LocalStore(REPORT, false) : LocalStore(null, true);
-S.mode = 'local';
-subSettings(); subMonth(); render();
+subAll(); render();
+
+if (REPORT || !pinSupported()) { $('#lock').classList.add('hidden'); document.body.classList.remove('locked'); }
+else lockOpen(pinRec() ? 'unlock' : 'setup');
 
 if (!REPORT && location.protocol.startsWith('http')) {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
