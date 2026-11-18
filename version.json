@@ -1,11 +1,8 @@
 {
-  "version": "2.7",
+  "version": "2.8",
   "date": "2026-11-18",
   "changes": [
-    "Saldo kont przenosi się automatycznie na kolejny miesiąc (także minus), z możliwością korekty",
-    "Planowanie 12 miesięcy do przodu jednym przyciskiem",
-    "Zmiana planu i powtarzających się pozycji: tylko ten miesiąc albo ten i kolejne",
-    "Zmiana ikony prosto z kategorii",
-    "Aktualizacja w zakładce Pomoc (czerwona kropka, gdy jest nowa wersja)"
+    "Kwota do rozdysponowania w żywym zielonym kolorze",
+    "Komunikat „Do rozdysponowania pozostało”"
   ]
 }

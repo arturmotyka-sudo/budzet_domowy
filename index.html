@@ -113,6 +113,11 @@ p.sub{margin:6px 0}
 .banner.info{background:var(--acc2);color:var(--acc)}
 .banner button{border:0;background:none;color:inherit;font-weight:650;text-decoration:underline;padding:0;margin-left:4px}
 .hidden{display:none!important}
+:root{--vivid:#16a34a;--vividbg:#dcfce7}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--vivid:#22c55e;--vividbg:#12301f}}
+:root[data-theme=dark]{--vivid:#22c55e;--vividbg:#12301f}
+.hero.ok .big,.hero.warn .big{color:var(--vivid)}
+.hero.warn .status{background:var(--vividbg);color:var(--vivid)}
 nav.tabs button{position:relative}
 nav.tabs button.upd::after{content:'';position:absolute;top:6px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
 .hint.center{text-align:center}
@@ -318,7 +323,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -593,7 +598,7 @@ function budgetHtml() {
   const c = calc(), st = S.settings;
   const cls = c.toAssign === 0 ? 'ok' : c.toAssign > 0 ? 'warn' : 'bad';
   const msg = c.toAssign === 0 ? '✓ Bilans na zero – każda złotówka ma przydział'
-            : c.toAssign > 0 ? `Przydziel jeszcze ${zl(c.toAssign)} do kategorii`
+            : c.toAssign > 0 ? 'Do rozdysponowania pozostało'
             : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
   let h = `<div class="card hero ${cls}"><div class="k">Do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div><div class="status">${msg}</div>
   <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent)}</b></div><div>Zostało<b>${zl(c.leftTotal)}</b></div></div>${carryLine()}</div>`;
@@ -718,9 +723,9 @@ function helpHtml() {
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
       <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek</span>
       <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
-      <span style="color:var(--warn)"><b>Bilans</b></span><span>pomarańczowy – są jeszcze nieprzydzielone pieniądze</span>
+      <span style="color:var(--vivid)"><b>Bilans</b></span><span>zielony – kwota, która pozostała do rozdysponowania (przydziel ją do kategorii)</span>
       <span class="neg"><b>Bilans</b></span><span>czerwony – brakuje pieniędzy (zaplanowano więcej, niż macie, albo przeszedł minus z poprzedniego miesiąca)</span>
-      <span class="pos"><b>Bilans</b></span><span>zielony 0 zł – wszystko rozdzielone ✓</span></div><p></p>`, true)
+      <span style="color:var(--vivid)"><b>0,00 zł</b></span><span>wszystko rozdzielone ✓</span></div><p></p>`, true)
   + sec('↪ Przenoszenie salda między miesiącami', `<ul>
       <li>Stan każdego konta na koniec miesiąca (po zaplanowanych pozycjach) <b>sam przechodzi</b> na start kolejnego – zarówno nadwyżka, jak i minus.</li>
       <li>Przeniesiona kwota zwiększa (albo przy minusie zmniejsza) <b>Do rozdysponowania</b> w nowym miesiącu – widać to pod bilansem: „↪ Przeniesione z…”.</li>
