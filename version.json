@@ -1,9 +1,11 @@
 {
-  "version": "2.6",
+  "version": "2.7",
   "date": "2026-11-18",
   "changes": [
-    "Ikony kategorii dobierają się same po nazwie (paliwo ⛽, podatek 🧾, przegląd 🔧, ubezpieczenie 🛡️ i ~60 innych)",
-    "Wybór ikony z listy po stuknięciu",
-    "Przycisk „Dopasuj ikony do nazw”"
+    "Saldo kont przenosi się automatycznie na kolejny miesiąc (także minus), z możliwością korekty",
+    "Planowanie 12 miesięcy do przodu jednym przyciskiem",
+    "Zmiana planu i powtarzających się pozycji: tylko ten miesiąc albo ten i kolejne",
+    "Zmiana ikony prosto z kategorii",
+    "Aktualizacja w zakładce Pomoc (czerwona kropka, gdy jest nowa wersja)"
   ]
 }

@@ -113,6 +113,9 @@ p.sub{margin:6px 0}
 .banner.info{background:var(--acc2);color:var(--acc)}
 .banner button{border:0;background:none;color:inherit;font-weight:650;text-decoration:underline;padding:0;margin-left:4px}
 .hidden{display:none!important}
+nav.tabs button{position:relative}
+nav.tabs button.upd::after{content:'';position:absolute;top:6px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
+.hint.center{text-align:center}
 .hbtn{position:absolute;right:14px;top:50%;transform:translateY(-35%);border:1px solid var(--line);background:var(--card);width:38px;height:38px;border-radius:50%;font-size:17px;line-height:1}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--badbg);color:var(--bad);margin-left:6px;vertical-align:1px}
 .tag.g{background:var(--acc2);color:var(--ok)}
@@ -174,7 +177,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
   <button data-act="tab" data-tab="budzet"><span class="ico">💰</span>Budżet</button>
   <button data-act="tab" data-tab="historia"><span class="ico">🧾</span>Historia</button>
   <button data-act="tab" data-tab="ustawienia" id="tab-ust"><span class="ico">⚙️</span>Ustawienia</button>
-  <button data-act="tab" data-tab="pomoc"><span class="ico">❓</span>Pomoc</button>
+  <button data-act="tab" data-tab="pomoc" id="tab-help"><span class="ico">❓</span>Pomoc</button>
 </nav>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div class="lock" id="lock"><div class="lockbox" id="lockbox">
@@ -315,7 +318,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -353,13 +356,18 @@ function LocalStore(initial, persist) {
   if (initial) data = norm(clone(initial));
   else { try { const r = lsGet(KEY); if (r) data = norm(JSON.parse(r)); } catch (e) {} }
   const subs = new Set();
+  let muted = false, dirty = false;
   const save = () => {
+    if (muted) { dirty = true; return; }
     if (persist) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { toast('Nie udało się zapisać w pamięci telefonu!'); throw e; } }
     subs.forEach(f => f());
   };
   const watch = f => { subs.add(f); f(); return () => subs.delete(f); };
   const txOf = m => Object.values(data.tx).filter(t => t.m === m);
   return {
+    watchAll: cb => watch(() => cb(data)),
+    batch: async fn => { muted = true; try { await fn(); } finally { muted = false; if (dirty) { dirty = false; save(); } } },
+    allTx: () => Object.values(data.tx),
     watchSettings: cb => watch(() => cb(data.settings)),
     watchMonth: (m, cb) => watch(() => cb(data.months[m] || null)),
     watchTx: (m, cb) => watch(() => cb(txOf(m))),
@@ -390,19 +398,18 @@ async function write(p, okMsg) {
 }
 
 /* ---------- subscriptions ---------- */
-const unsub = {s:null, m:null, t:null, r:null};
 function subAll() {
-  unsub.s = store.watchSettings(d => { S.settings = d || null; render(); });
-  unsub.r = store.watchRules(r => { S.rules = r || {}; render(); });
-  subMonth();
+  store.watchAll(d => {
+    S.data = d; S.ver = (S.ver || 0) + 1;
+    S.settings = d.settings || null; S.rules = d.rules || {};
+    const by = {}; for (const t of Object.values(d.tx)) (by[t.m] || (by[t.m] = [])).push(t);
+    S.txBy = by; subMonth(); render();
+  });
 }
-function subMonth() {
-  unsub.m && unsub.m(); unsub.t && unsub.t();
-  S.monthDoc = undefined; S.tx = [];
-  const m = S.month;
-  unsub.m = store.watchMonth(m, d => { if (m === S.month) { S.monthDoc = d || null; render(); } });
-  unsub.t = store.watchTx(m, list => { if (m === S.month) { S.tx = list; render(); } });
-}
+function subMonth() { S.monthDoc = (S.data && S.data.months[S.month]) || null; S.tx = ((S.txBy || {})[S.month] || []).slice(); }
+const monthKeys = () => Object.keys((S.data && S.data.months) || {}).sort();
+const prevMonthOf = m => { const k = monthKeys().filter(x => x < m); return k.length ? k[k.length - 1] : null; };
+const futureMonthsOf = m => monthKeys().filter(x => x > m);
 
 /* ---------- płatności cykliczne / przypomnienia ---------- */
 function ruleApplies(r, m) {
@@ -475,7 +482,29 @@ function calcFor(st, md, txs) {
   return { W, C, funds, planTotal, spent, inc, startTotal, plannedOut, toAssign: funds - planTotal, leftTotal: planTotal - spent,
            balTotal: Object.values(W).reduce((s, w) => s + w.bal, 0), actualTotal: Object.values(W).reduce((s, w) => s + w.actual, 0) };
 }
-const calc = () => calcFor(S.settings, S.monthDoc, S.tx);
+/* Łańcuch miesięcy: stan kont na koniec miesiąca (po zaplanowanych) przechodzi na start kolejnego. */
+let CH = null;
+function chain() {
+  if (CH && CH.ver === S.ver && CH.st === S.settings) return CH.res;
+  const res = {}; let prev = null;
+  for (const m of monthKeys()) {
+    const md = S.data.months[m];
+    const carry = md.carry !== false && prev !== null;
+    const start = {};
+    if (carry) {
+      for (const [w, v] of Object.entries(res[prev].end)) start[w] = v;
+      for (const [w, v] of Object.entries(md.adj || {})) start[w] = (start[w] || 0) + v;
+    } else Object.assign(start, md.start || {});
+    const c = calcFor(S.settings, {start, plan:md.plan}, (S.txBy || {})[m] || []);
+    const end = {}; for (const [w, x] of Object.entries(c.W)) end[w] = x.bal;
+    res[m] = {carry, prev: carry ? prev : null, start, end, c, carried: carry ? res[prev].end : null, adj: carry ? (md.adj || {}) : {}};
+    prev = m;
+  }
+  CH = {ver:S.ver, st:S.settings, res};
+  return res;
+}
+const monthInfo = m => (S.data && S.data.months[m]) ? chain()[m] : null;
+const calc = () => { const r = monthInfo(S.month); return r ? r.c : calcFor(S.settings, S.monthDoc, S.tx); };
 const catById = id => (S.settings?.categories || []).find(c => c.id === id);
 const walletById = id => (S.settings?.wallets || []).find(w => w.id === id);
 const catName = id => catById(id)?.name || '(usunięta kategoria)';
@@ -504,6 +533,7 @@ function renderChrome() {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
   $('#tabs').hidden = !S.settings;
   $('#tab-ust').classList.toggle('hidden', !!REPORT);
+  $('#tab-help').classList.toggle('upd', !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION)));
   $('#fab').hidden = !(S.settings && S.monthDoc && S.tab !== 'ustawienia' && S.tab !== 'pomoc' && !S.readOnly);
 }
 
@@ -564,9 +594,9 @@ function budgetHtml() {
   const cls = c.toAssign === 0 ? 'ok' : c.toAssign > 0 ? 'warn' : 'bad';
   const msg = c.toAssign === 0 ? '✓ Bilans na zero – każda złotówka ma przydział'
             : c.toAssign > 0 ? `Przydziel jeszcze ${zl(c.toAssign)} do kategorii`
-            : `Zaplanowano o ${zl(-c.toAssign)} więcej, niż macie`;
+            : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
   let h = `<div class="card hero ${cls}"><div class="k">Do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div><div class="status">${msg}</div>
-  <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent)}</b></div><div>Zostało<b>${zl(c.leftTotal)}</b></div></div></div>`;
+  <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent)}</b></div><div>Zostało<b>${zl(c.leftTotal)}</b></div></div>${carryLine()}</div>`;
   const planned = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
   if (planned.length) {
     h += `<h3>🕒 Zaplanowane<span class="neg">${zl(c.plannedOut)}</span></h3><div class="card list">`;
@@ -585,7 +615,17 @@ function budgetHtml() {
   const orph = Object.entries(c.C).filter(([, v]) => v.orphan && (v.plan || v.spent));
   if (orph.length) h += `<h3>Usunięte kategorie</h3><div class="card list">${orph.map(([id, v]) => catRow({id, name:'(usunięta kategoria)', emoji:'❔'}, v)).join('')}</div>`;
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
+  if (!S.readOnly) {
+    const missing = Array.from({length:12}, (_, i) => shiftMonth(S.month, i + 1)).filter(m => !S.data.months[m]).length;
+    if (missing) h += `<button class="btn sec" style="margin-top:22px" data-act="yearahead">📅 Zaplanuj 12 miesięcy do przodu</button><span class="hint center">Utworzy brakujące budżety (${missing}) z planem i powtarzającymi się pozycjami – potem możesz je poprawiać w każdym miesiącu.</span>`;
+  }
   return h;
+}
+function carryLine() {
+  const mi = monthInfo(S.month); if (!mi || !mi.carry) return '';
+  const carried = Object.values(mi.carried).reduce((s, v) => s + v, 0);
+  const adj = Object.values(mi.adj).reduce((s, v) => s + v, 0);
+  return `<div class="sub" style="margin-top:10px">↪ Przeniesione z: ${esc(monthLabel(mi.prev))}: <b class="${carried < 0 ? 'neg' : ''}">${zl(carried)}</b>${adj ? ` · korekta: <b>${adj > 0 ? '+' : '−'}${zl(Math.abs(adj))}</b>` : ''}</div>`;
 }
 
 function catRow(x, cc) {
@@ -664,7 +704,7 @@ function settingsHtml() {
   h += `<button class="btn" data-act="ssave">${S.draftDirty ? 'Zapisz zmiany •' : 'Zapisz zmiany'}</button>`;
   h += `<h3>Bezpieczeństwo</h3><div class="card"><button class="btn sec" style="margin-top:0" data-act="pinchange">🔒 Zmień PIN</button>
     <p class="sub">Aplikacja blokuje się przy każdym uruchomieniu i po minucie w tle.</p></div>`;
-  h += updateHtml();
+  h += `<p class="sub center" style="margin-top:14px">Wersja ${APP_VERSION} · aktualizacja w zakładce <b>❓ Pomoc</b></p>`;
   h += `<div class="card" style="margin-top:22px"><b>Jak to działa</b>
     <p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie, aż „Do rozdysponowania” pokaże 0 zł. Każdy wydatek (przycisk +) zmniejsza kategorię i konto naraz. Zaplanowane płatności (czerwone) są od razu odliczone – po zapłaceniu stuknij „✓ Zapłacone”.</p></div>`;
   return h;
@@ -679,11 +719,20 @@ function helpHtml() {
       <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek</span>
       <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
       <span style="color:var(--warn)"><b>Bilans</b></span><span>pomarańczowy – są jeszcze nieprzydzielone pieniądze</span>
-      <span class="neg"><b>Bilans</b></span><span>czerwony – zaplanowano więcej, niż macie</span>
+      <span class="neg"><b>Bilans</b></span><span>czerwony – brakuje pieniędzy (zaplanowano więcej, niż macie, albo przeszedł minus z poprzedniego miesiąca)</span>
       <span class="pos"><b>Bilans</b></span><span>zielony 0 zł – wszystko rozdzielone ✓</span></div><p></p>`, true)
+  + sec('↪ Przenoszenie salda między miesiącami', `<ul>
+      <li>Stan każdego konta na koniec miesiąca (po zaplanowanych pozycjach) <b>sam przechodzi</b> na start kolejnego – zarówno nadwyżka, jak i minus.</li>
+      <li>Przeniesiona kwota zwiększa (albo przy minusie zmniejsza) <b>Do rozdysponowania</b> w nowym miesiącu – widać to pod bilansem: „↪ Przeniesione z…”.</li>
+      <li>Gdy poprawisz coś w poprzednim miesiącu, kolejne przeliczą się automatycznie.</li>
+      <li>Jeśli stan w banku jest inny, stuknij konto i wpisz właściwą kwotę – różnica zapisze się jako <b>korekta</b> i też będzie się przenosić dalej.</li></ul>`)
+  + sec('📅 Planowanie na rok do przodu', `<ul>
+      <li>Na dole ekranu Budżet: <b>📅 Zaplanuj 12 miesięcy do przodu</b> – tworzy brakujące budżety z planem z poprzedniego miesiąca i wszystkimi powtarzającymi się wpływami i wydatkami (jako zaplanowane).</li>
+      <li>Strzałką › przejdź do dowolnego miesiąca i dodawaj lub poprawiaj pozycje – np. ubezpieczenie w marcu, przegląd w czerwcu.</li>
+      <li>Zmieniając <b>plan kategorii</b> albo <b>powtarzającą się pozycję</b>, wybierasz: <b>tylko ten miesiąc</b> albo <b>ten i kolejne</b>.</li></ul>`)
   + sec('🗓️ Początek miesiąca', `<ol>
       <li>Strzałkami ‹ › u góry wybierz miesiąc i stuknij <b>Utwórz budżet</b>.</li>
-      <li>Wpisz <b>środki na start</b> dla każdej osoby – podpowiada się stan kont z końca poprzedniego miesiąca (po zaplanowanych operacjach).</li>
+      <li><b>Środki na start</b> przenoszą się same ze stanu kont z końca poprzedniego miesiąca. Zmień je tylko, jeśli stan w banku jest inny. W pierwszym miesiącu wpisujesz je ręcznie.</li>
       <li>Zaznacz <b>Skopiuj plan</b>, jeśli chcesz takie same kwoty jak w poprzednim miesiącu.</li>
       <li>Płatności cykliczne i przypomnienia dodadzą się same jako zaplanowane (czerwone).</li>
       <li>Stuknij kategorię i wpisz <b>plan</b>. Przycisk <b>Wyrównaj bilans</b> wrzuca do tej kategorii całą resztę, tak żeby bilans wyszedł 0 zł.</li></ol>`)
@@ -712,8 +761,9 @@ function helpHtml() {
       <li><b>Powtarzaj: co rok</b> – np. OC, przegląd auta. Wróci w tym samym miesiącu za rok jako czerwona przypominajka.</li>
       <li>Jednorazowo: otwórz istniejącą operację → <b>📅 Na następny miesiąc</b> albo <b>📅 Za rok</b>.</li>
       <li>Pozycje dodają się w chwili tworzenia budżetu na dany miesiąc. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
-      <li>Zmiana kwoty w powtarzanej operacji obejmuje też kolejne miesiące. Przy usuwaniu wybierasz: tylko tę albo też przyszłe.</li></ul>`)
-  + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>`)
+      <li>Przy zmianie powtarzanej operacji wybierasz: <b>tylko w tym miesiącu</b> (korekta jednorazowa) albo <b>w tym i kolejnych</b>. Przy usuwaniu – tylko tę albo też przyszłe.</li>
+      <li>Powtarzaj: <b>Nie</b> w istniejącej pozycji wyłącza powtarzanie i usuwa jej zaplanowane kopie z przyszłych miesięcy.</li></ul>`)
+  + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. Ikonę zmienisz też prosto z ekranu Budżet: stuknij kategorię, a potem jej ikonę w nagłówku. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>`)
   + sec('🔄 Przelew między kontami', `<p><b>+</b> → zakładka <b>Przelew</b> → z którego konta na które. Przelew zmienia tylko stan kont, nie rusza kategorii ani bilansu.</p>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>usuń cały miesiąc</b> (wraca ekran „Utwórz budżet”). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
@@ -727,7 +777,7 @@ function helpHtml() {
       <li>Aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
       <li>Zmiana: <b>Ustawienia → Zmień PIN</b>.</li>
       <li>Zapomniany PIN: na ekranie blokady <b>Nie pamiętam PIN-u</b> – usuwa dane z telefonu, potem wczytujesz ostatni raport.</li></ul>`)
-  + sec('⬇️ Aktualizacja', `<p><b>Ustawienia → Aktualizacja</b> pokazuje Twoją wersję i najnowszą. Gdy jest nowsza – stuknij <b>Aktualizuj</b>. Kwoty i ustawienia zostają bez zmian.</p>`)
+  + (REPORT ? '' : sec('⬇️ Aktualizacja', `<div class="card" style="margin:0 0 12px">${updateHtml()}</div><p>Gdy jest nowsza wersja, na zakładce Pomoc pojawia się czerwona kropka. Stuknij <b>Aktualizuj</b> – kwoty, ustawienia i PIN zostają bez zmian.</p>`, !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION))))
   + `<p class="sub center" style="margin:16px 0">Budżet domowy · wersja ${APP_VERSION}</p>`;
 }
 
@@ -740,16 +790,16 @@ function updateHtml() {
       ${(r.changes || []).length ? `<p class="sub"><b>Co nowego:</b><br>${r.changes.map(c => '• ' + esc(c)).join('<br>')}</p>` : ''}
       <button class="btn" data-act="update">⬇️ Aktualizuj do ${esc(r.version)}</button><span class="hint">Twoje kwoty i ustawienia zostaną bez zmian.</span>`;
   else info = `<div class="kv"><span>Najnowsza</span><b>${esc(r.version)}</b></div><p class="sub">✓ Masz aktualną wersję.</p><button class="btn sec" data-act="updcheck">🔄 Sprawdź ponownie</button>`;
-  return `<h3>Aktualizacja</h3><div class="card"><div class="kv"><span>Twoja wersja</span><b>${APP_VERSION} (${esc(fmtDate(APP_DATE))})</b></div>${info}</div>`;
+  return `<div class="kv"><span>Twoja wersja</span><b>${APP_VERSION} (${esc(fmtDate(APP_DATE))})</b></div>${info}`;
 }
 async function checkUpdate() {
-  S.remote = null; if (S.tab === 'ustawienia') renderMain(true);
+  if (!S.remote || S.remote.error) { S.remote = null; if (S.tab === 'pomoc') renderMain(true); }
   try {
     const res = await fetch('version.json?t=' + Date.now(), {cache:'no-store'});
     if (!res.ok) throw new Error(res.status);
     S.remote = await res.json();
   } catch (e) { S.remote = {error:true}; }
-  if (S.tab === 'ustawienia') renderMain(true);
+  render(); if (S.tab === 'pomoc') renderMain(true);
 }
 async function doUpdate() {
   toast('Aktualizuję…');
@@ -785,7 +835,7 @@ function openCat(id) {
   const x = catById(id) || {id, name:'(usunięta kategoria)', emoji:'❔'};
   const c = calc(), cc = c.C[id] || {plan:0, spent:0};
   const list = sortTx(S.tx.filter(t => t.type === 'wydatek' && t.cat === id));
-  openSheet(`${head(esc((x.emoji || '') + ' ' + x.name))}
+  openSheet(`<div class="shead"><h2>${S.readOnly || !catById(id) ? esc(x.emoji || '') : `<button class="ib emobtn" style="width:48px;margin-right:6px" data-act="catemo" data-id="${esc(id)}" aria-label="Zmień ikonę">${esc(x.emoji || '🏷️')}</button>`}${esc(x.name)}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>
     ${S.readOnly ? `<div class="card"><div class="kv"><span>Plan</span><b>${zl(cc.plan)}</b></div>` : `
     <label class="f">Plan na ${esc(monthLabel(S.month))}</label>
     <input class="amt" id="plan" inputmode="decimal" placeholder="0,00" value="${toInput(cc.plan)}">
@@ -808,18 +858,20 @@ function updatePlanHint() {
 
 /* wallet sheet */
 function openWallet(id) {
-  const c = calc(), w = c.W[id];
+  const c = calc(), w = c.W[id], mi = monthInfo(S.month);
+  const carried = mi && mi.carry ? (mi.carried[id] || 0) : null;
   const transfers = (w.tin - w.ptin) - (w.tout - w.ptout);
   openSheet(`${head(esc(walletName(id)))}
     <div class="center"><span class="sub">Na koncie teraz</span><div style="font-size:30px;font-weight:700">${zl(w.actual)}</div>${w.bal !== w.actual ? `<span class="sub">po zaplanowanych: <b>${zl(w.bal)}</b></span>` : ''}</div>
-    ${S.readOnly ? `<div class="card"><div class="kv"><span>Na start miesiąca</span><b>${zl(w.start)}</b></div>` : `
-    <label class="f">Środki na start miesiąca</label>
-    <input class="amt" id="wstart" inputmode="decimal" placeholder="0,00" value="${toInput(w.start)}"><div class="card">`}
+    ${S.readOnly ? `<div class="card">${carried !== null ? `<div class="kv"><span>Przeniesione z: ${esc(monthLabel(mi.prev))}</span><b>${zl(carried)}</b></div>` : ''}<div class="kv"><span>Na start miesiąca</span><b>${zl(w.start)}</b></div>` : `
+    <label class="f">Środki na start miesiąca${carried !== null ? ` (przeniesione z: ${esc(monthLabel(mi.prev))}: ${zl(carried)})` : ''}</label>
+    <input class="amt" id="wstart" inputmode="decimal" placeholder="0,00" value="${toInput(w.start)}">
+    ${carried !== null ? `<span class="hint">Przenosi się automatycznie. Zmień tylko, gdy stan w banku jest inny – różnica zapisze się jako korekta${w.start !== carried ? ` (teraz: ${w.start - carried > 0 ? '+' : '−'}${zl(Math.abs(w.start - carried))})` : ''}.</span>` : ''}<div class="card">`}
     <div class="kv"><span>Wpływy</span><b class="pos">+${zl(w.inc - w.pinc)}</b></div><div class="kv"><span>Wydatki</span><b>−${zl(w.spent - w.pexp)}</b></div><div class="kv"><span>Przelewy</span><b>${transfers >= 0 ? '+' : '−'}${zl(Math.abs(transfers))}</b></div>
     ${w.pin ? `<div class="kv"><span>🕒 Spodziewane wpływy</span><b class="pos">+${zl(w.pin)}</b></div>` : ''}${w.pout ? `<div class="kv"><span>🕒 Zaplanowane płatności</span><b class="neg">−${zl(w.pout)}</b></div>` : ''}</div>
     ${S.readOnly ? '' : `<button class="btn" data-act="wsave">Zapisz środki na start</button>
     <div class="row2"><button class="btn sec" data-act="addtx" data-type="wplyw" data-wallet="${esc(id)}">+ Wpływ</button><button class="btn sec" data-act="addtx" data-type="przelew" data-wallet="${esc(id)}">🔁 Przelew</button></div>`}`,
-    {kind:'wallet', id});
+    {kind:'wallet', id, carried});
 }
 
 /* transaction sheet */
@@ -898,20 +950,30 @@ function recFromDraft() {
   return rec;
 }
 
+/* icon picker */
+function openEmoPicker(name, current, ctx) {
+  const sug = guessIcon(name);
+  let h = head('Ikona: ' + esc(name || 'nowa kategoria'));
+  if (sug) h += `<label class="f">Podpowiedź</label><div class="epick"><button data-act="cemoset" data-v="${sug}" class="${sug === current ? 'on' : ''}">${sug}</button></div>`;
+  for (const [g, list] of ICON_PICK) h += `<label class="f">${g}</label><div class="epick">${list.map(e => `<button data-act="cemoset" data-v="${e}" class="${e === current ? 'on' : ''}">${e}</button>`).join('')}</div>`;
+  h += `<label class="f">Albo wpisz dowolne emoji z klawiatury</label><div class="row2" style="grid-template-columns:1fr auto"><input id="emocustom" class="emoin" maxlength="4" placeholder="🙂" style="font-size:22px;text-align:center"><button class="btn" style="margin:0;padding:0 18px" data-act="cemoset" data-v="">OK</button></div>`;
+  openSheet(h, ctx);
+}
+
 /* new month sheet */
 async function openNewMonth() {
-  const months = (await store.listMonths()).filter(k => k < S.month).sort();
-  const prevKey = months.length ? months[months.length - 1] : null;
-  const pd = prevKey ? await store.getMonth(prevKey) : null;
-  const ptx = prevKey ? await store.getTx(prevKey) : [];
-  const pc = pd ? calcFor(S.settings, pd, ptx) : null;
+  const prevKey = prevMonthOf(S.month);
+  const pd = prevKey ? S.data.months[prevKey] : null;
+  const ptx = prevKey ? (S.txBy[prevKey] || []) : [];
+  const pe = prevKey ? chain()[prevKey].end : null;
   const planSum = pd ? Object.values(pd.plan || {}).reduce((s, v) => s + v, 0) : 0;
   const pr = pendingRulesFor(S.month);
   let h = head('Budżet: ' + esc(monthLabel(S.month)));
-  h += `<label class="f">Środki na start${pc ? ` (stan kont na koniec: ${esc(monthLabel(prevKey))}, po zaplanowanych)` : ''}</label>`;
+  h += `<label class="f">Środki na start${pe ? ` – przeniesione ze stanu kont na koniec: ${esc(monthLabel(prevKey))}` : ''}</label>`;
   const unresolved = ptx.filter(t => t.planned).length;
   if (unresolved) h += `<div class="banner warn">W miesiącu ${esc(monthLabel(prevKey))} ${unresolved === 1 ? 'jest 1 zaplanowana pozycja' : `jest ${unresolved} zaplanowanych pozycji`} bez „✓”. Kwoty poniżej zakładają, że się wykonają.</div>`;
-  for (const w of S.settings.wallets) h += `<div class="srow w" style="grid-template-columns:110px 1fr"><span>${esc(w.name)}</span><input inputmode="decimal" data-nw="${esc(w.id)}" placeholder="0,00" value="${pc ? toInput(pc.W[w.id]?.bal || 0) : ''}"></div>`;
+  for (const w of S.settings.wallets) h += `<div class="srow w" style="grid-template-columns:110px 1fr"><span>${esc(w.name)}</span><input inputmode="decimal" data-nw="${esc(w.id)}" placeholder="0,00" value="${pe ? toInput(pe[w.id] || 0) : ''}"></div>`;
+  if (pe) h += `<span class="hint">Kwoty przenoszą się automatycznie (także minus) i będą się aktualizować, gdy poprawisz poprzedni miesiąc. Zmień je tylko, jeśli stan w banku jest inny.</span>`;
   if (pd) h += `<label class="chk" style="margin-top:10px"><input type="checkbox" id="nmcopy" checked> Skopiuj plan z: ${esc(monthLabel(prevKey))} (${zl(planSum)})</label>`;
   else h += `<p class="sub">Plan kategorii ustawisz po utworzeniu – stuknij kategorię, żeby wpisać kwotę.</p>`;
   if (pr.length) {
@@ -920,7 +982,7 @@ async function openNewMonth() {
     h += `</div>`;
   }
   h += `<button class="btn" data-act="nmcreate">Utwórz budżet</button>`;
-  openSheet(h, {kind:'new', plan: pd ? clone(pd.plan || {}) : {}});
+  openSheet(h, {kind:'new', plan: pd ? clone(pd.plan || {}) : {}, carry: pe ? clone(pe) : null});
 }
 
 /* ---------- report / excel / import ---------- */
@@ -1110,7 +1172,8 @@ document.addEventListener('click', async e => {
   switch (a) {
     case 'close': closeSheet(); break;
     case 'tab':
-      if (ds.tab === 'ustawienia' && S.tab !== 'ustawienia') { S.draft = null; S.draftDirty = false; S.tab = ds.tab; window.scrollTo(0, 0); render(); checkUpdate(); break; }
+      if (ds.tab === 'ustawienia' && S.tab !== 'ustawienia') { S.draft = null; S.draftDirty = false; }
+      if (ds.tab === 'pomoc' && S.tab !== 'pomoc' && !REPORT) { S.tab = ds.tab; window.scrollTo(0, 0); render(); checkUpdate(); break; }
       S.tab = ds.tab; window.scrollTo(0, 0); render(); break;
     case 'mprev': setMonth(shiftMonth(S.month, -1)); break;
     case 'mnext': setMonth(shiftMonth(S.month, 1)); break;
@@ -1149,16 +1212,17 @@ document.addEventListener('click', async e => {
     }
     case 'newmonth': openNewMonth(); break;
     case 'nmcreate': {
-      const start = {};
+      const start = {}, adj = {}, carry = S.sheet.carry;
       for (const inp of document.querySelectorAll('[data-nw]')) {
-        const v = parseZl(inp.value); if (isNaN(v)) { toast('Popraw kwotę dla: ' + walletName(inp.dataset.nw)); return; }
-        if (v) start[inp.dataset.nw] = v;
+        const v = parseZl(inp.value), w = inp.dataset.nw; if (isNaN(v)) { toast('Popraw kwotę dla: ' + walletName(w)); return; }
+        if (carry) { const d = v - (carry[w] || 0); if (d) adj[w] = d; } else if (v) start[w] = v;
       }
       const copy = $('#nmcopy')?.checked;
       const plan = {};
       if (copy) for (const [k, v] of Object.entries(S.sheet.plan || {})) if (catById(k) && v) plan[k] = v;
       const m = S.month; closeSheet();
-      if (await write(store.saveMonth(m, {start, plan, created:Date.now()}))) {
+      const doc = carry ? {carry:true, adj, plan, created:Date.now()} : {carry:false, start, plan, created:Date.now()};
+      if (await write(store.saveMonth(m, doc))) {
         const n = await applyRules(m, pendingRulesFor(m));
         toast(n ? `Budżet utworzony · dodano ${n} zaplanowane` : 'Budżet utworzony');
       }
@@ -1169,18 +1233,42 @@ document.addEventListener('click', async e => {
     case 'planfill': { const s = S.sheet; $('#plan').value = toInput(Math.max(0, s.basePlan + s.baseAssign)); updatePlanHint(); break; }
     case 'plansave': {
       const v = parseZl($('#plan').value); if (isNaN(v) || v < 0) { toast('Wpisz poprawną kwotę'); return; }
-      const md = clone(S.monthDoc); md.plan = md.plan || {};
-      if (v) md.plan[S.sheet.id] = v; else delete md.plan[S.sheet.id];
-      const m = S.month; closeSheet();
-      await write(store.saveMonth(m, md), 'Plan zapisany');
+      const cid = S.sheet.id, m = S.month, fut = futureMonthsOf(m);
+      let targets = [m];
+      if (fut.length && v !== S.sheet.basePlan) {
+        const ch = await choose(`Zmienić plan „${catName(cid)}” na ${zl(v)}:`, [{label:`Tylko ${monthLabel(m)}`}, {label:`${monthLabel(m)} i kolejne (${fut.length})`}]);
+        if (ch < 0) return;
+        if (ch === 1) targets = [m, ...fut];
+      }
+      closeSheet();
+      await write(store.batch(async () => { for (const k of targets) { const md = clone(S.data.months[k]); md.plan = md.plan || {}; if (v) md.plan[cid] = v; else delete md.plan[cid]; await store.saveMonth(k, md); } }),
+        targets.length > 1 ? `Plan zapisany w ${targets.length} miesiącach` : 'Plan zapisany');
       break;
     }
 
+    case 'yearahead': {
+      const list = Array.from({length:12}, (_, i) => shiftMonth(S.month, i + 1)).filter(m => !S.data.months[m]);
+      if (!list.length) return;
+      if (!(await ask(`Utworzyć budżety: ${monthLabel(list[0])} – ${monthLabel(list[list.length - 1])} (${list.length})? Plan skopiuje się z poprzedniego miesiąca, salda przeniosą się automatycznie, a powtarzające się pozycje dodadzą jako zaplanowane.`, 'Utwórz', false))) return;
+      let added = 0;
+      await write(store.batch(async () => {
+        for (const m of list) {
+          const p = prevMonthOf(m) || S.month;
+          const plan = clone((S.data.months[p] || {}).plan || {});
+          await store.saveMonth(m, {carry:true, adj:{}, plan, created:Date.now()});
+          added += await applyRules(m, Object.values(S.rules || {}));
+        }
+      }));
+      toast(`Utworzono ${list.length} miesięcy${added ? ` · ${added} zaplanowanych pozycji` : ''}`);
+      break;
+    }
+    case 'catemo': { const c = catById(ds.id); if (c) openEmoPicker(c.name, c.emoji, {kind:'emo', direct:ds.id}); break; }
     case 'wallet': openWallet(ds.id); break;
     case 'wsave': {
       const v = parseZl($('#wstart').value); if (isNaN(v)) { toast('Wpisz poprawną kwotę'); return; }
-      const md = clone(S.monthDoc); md.start = md.start || {};
-      if (v) md.start[S.sheet.id] = v; else delete md.start[S.sheet.id];
+      const md = clone(S.monthDoc), w = S.sheet.id, carried = S.sheet.carried;
+      if (carried !== null && carried !== undefined) { md.carry = true; md.adj = md.adj || {}; const d = v - carried; if (d) md.adj[w] = d; else delete md.adj[w]; }
+      else { md.start = md.start || {}; if (v) md.start[w] = v; else delete md.start[w]; if (md.carry === undefined) md.carry = false; }
       const m = S.month; closeSheet();
       await write(store.saveMonth(m, md), 'Zapisano');
       break;
@@ -1203,24 +1291,54 @@ document.addEventListener('click', async e => {
     case 'tsave': {
       syncTxInputs(); const err = validateDraft(); if (err) { toast(err); return; }
       const t = S.txDraft, rec = recFromDraft();
+      const orig = t.id ? S.tx.find(z => z.id === t.id) : null;
       const oldRule = t.rule && S.rules[t.rule] ? S.rules[t.rule] : null;
-      let newRule = null;
-      if (oldRule) {
-        if (t.repeat === 'none') { await store.deleteRule(oldRule.id); }
-        else {
-          const upd = ruleFromTx(rec, t.repeat, {id:oldRule.id, from:oldRule.from});
-          if (oldRule.freq !== t.repeat) newRule = upd;
-          await store.saveRule(upd); rec.rule = oldRule.id;
+      const futureOf = r => store.allTx().filter(x => x.rule === r.id && x.m > S.month && x.planned);
+      let newRule = null, scopeAll = false, msg = !t.id ? 'Dodano' : 'Zapisano';
+      if (oldRule && t.repeat === oldRule.freq && orig) {
+        const changed = ['amount','cat','wallet','to','note','type'].some(k => (orig[k] || '') !== (rec[k] || '')) || orig.d.slice(8) !== rec.d.slice(8);
+        if (changed) {
+          const ch = await choose('Ta pozycja powtarza się ' + FREQ_LABEL[oldRule.freq] + '. Zmienić:', [{label:`Tylko w: ${monthLabel(S.month)}`}, {label:'W tym i kolejnych miesiącach'}]);
+          if (ch < 0) return;
+          scopeAll = ch === 1;
         }
-      } else if (t.repeat !== 'none') {
-        newRule = ruleFromTx(rec, t.repeat); await store.saveRule(newRule); rec.rule = newRule.id;
       }
       lsSet('budzet-lastWallet', t.wallet);
-      const isNew = !t.id; closeSheet();
-      if (await write(store.saveTx(rec), isNew ? 'Dodano' : 'Zapisano') && newRule) {
-        const added = await applyRuleToExisting(newRule);
-        if (added.length) toast('Dodano też do: ' + added.map(monthLabel).join(', '));
-      }
+      closeSheet();
+      const ok = await write(store.batch(async () => {
+        if (oldRule) {
+          if (t.repeat === 'none') {
+            for (const x of futureOf(oldRule)) await store.deleteTx(x.id);
+            await store.deleteRule(oldRule.id); msg = 'Zapisano · powtarzanie wyłączone';
+          } else if (t.repeat !== oldRule.freq) {
+            const upd = ruleFromTx(rec, t.repeat, {id:oldRule.id, from:oldRule.from});
+            for (const x of futureOf(oldRule)) if (!ruleApplies(upd, x.m)) await store.deleteTx(x.id);
+            await store.saveRule(upd); rec.rule = oldRule.id; newRule = upd;
+          } else {
+            rec.rule = oldRule.id;
+            if (scopeAll) {
+              const upd = ruleFromTx(rec, t.repeat, {id:oldRule.id, from:oldRule.from});
+              await store.saveRule(upd);
+              let n = 0;
+              for (const x of futureOf(oldRule)) {
+                const y = Object.assign({}, x, {type:rec.type, amount:rec.amount, wallet:rec.wallet, note:rec.note, d:clampDay(x.m, upd.day)});
+                delete y.cat; delete y.to; if (rec.type === 'wydatek') y.cat = rec.cat; if (rec.type === 'przelew') y.to = rec.to;
+                await store.saveTx(y); n++;
+              }
+              msg = n ? `Zapisano tu i w ${n} kolejnych miesiącach` : 'Zapisano (także dla kolejnych miesięcy)';
+            }
+          }
+        } else if (t.repeat !== 'none') {
+          newRule = ruleFromTx(rec, t.repeat); await store.saveRule(newRule); rec.rule = newRule.id;
+        }
+        await store.saveTx(rec);
+      }), null);
+      if (!ok) break;
+      if (newRule) {
+        let added = [];
+        await store.batch(async () => { added = await applyRuleToExisting(newRule); });
+        toast(added.length ? `${msg} · dodano też do ${added.length} ${added.length === 1 ? 'miesiąca' : 'miesięcy'}` : msg);
+      } else toast(msg);
       break;
     }
     case 'tcopy': {
@@ -1238,15 +1356,25 @@ document.addEventListener('click', async e => {
       if (r) {
         const ch = await choose('Ta operacja powtarza się ' + FREQ_LABEL[r.freq] + '. Co usunąć?', [{label:'Tylko tę', cls:'danger'}, {label:'Tę i przyszłe powtórzenia', cls:'danger'}]);
         if (ch < 0) return;
-        if (ch === 1) await store.deleteRule(r.id);
+        if (ch === 1) {
+          closeSheet();
+          const fut = store.allTx().filter(x => x.rule === r.id && x.m > S.month && x.planned);
+          await write(store.batch(async () => { for (const x of fut) await store.deleteTx(x.id); await store.deleteRule(r.id); await store.deleteTx(t.id); }),
+            fut.length ? `Usunięto tę i ${fut.length} zaplanowanych w kolejnych miesiącach` : 'Usunięto');
+          break;
+        }
       } else if (!(await ask('Usunąć tę operację?'))) return;
       closeSheet(); await write(store.deleteTx(t.id), 'Usunięto');
       break;
     }
     case 'rdel': {
       const r = S.rules[ds.id]; if (!r) return;
-      if (!(await ask(`Usunąć „${ruleTitle(r)}” (${ruleWhen(r)})? Już dodane operacje zostaną.`))) return;
-      await write(store.deleteRule(r.id), 'Usunięto'); renderMain(true);
+      const fut = store.allTx().filter(x => x.rule === r.id && x.m > CUR && x.planned);
+      const ch = await choose(`Usunąć „${ruleTitle(r)}” (${ruleWhen(r)})?`, fut.length
+        ? [{label:'Usuń powtarzanie – zostaw już dodane', cls:'danger'}, {label:`Usuń też zaplanowane w przyszłych miesiącach (${fut.length})`, cls:'danger'}]
+        : [{label:'Usuń', cls:'danger'}]);
+      if (ch < 0) return;
+      await write(store.batch(async () => { if (ch === 1) for (const x of fut) await store.deleteTx(x.id); await store.deleteRule(r.id); }), 'Usunięto'); renderMain(true);
       break;
     }
 
@@ -1267,21 +1395,18 @@ document.addEventListener('click', async e => {
       toast(n ? `Zmieniono ikony: ${n} – pamiętaj „Zapisz zmiany”` : 'Ikony już pasują albo nie znalazłem dopasowań');
       break;
     }
-    case 'cemopick': {
-      const i = +ds.i, c = S.draft.categories[i];
-      const sug = guessIcon(c.name);
-      let h = head('Ikona: ' + esc(c.name || 'nowa kategoria'));
-      if (sug) h += `<label class="f">Podpowiedź</label><div class="epick"><button data-act="cemoset" data-v="${sug}" class="${sug === c.emoji ? 'on' : ''}">${sug}</button></div>`;
-      for (const [g, list] of ICON_PICK) h += `<label class="f">${g}</label><div class="epick">${list.map(e => `<button data-act="cemoset" data-v="${e}" class="${e === c.emoji ? 'on' : ''}">${e}</button>`).join('')}</div>`;
-      h += `<label class="f">Albo wpisz dowolne emoji z klawiatury</label><div class="row2" style="grid-template-columns:1fr auto"><input id="emocustom" class="emoin" maxlength="4" placeholder="🙂" style="font-size:22px;text-align:center"><button class="btn" style="margin:0;padding:0 18px" data-act="cemoset" data-v="">OK</button></div>`;
-      openSheet(h, {kind:'emo', i});
-      break;
-    }
+    case 'cemopick': { const i = +ds.i, c = S.draft.categories[i]; openEmoPicker(c.name, c.emoji, {kind:'emo', i}); break; }
     case 'cemoset': {
-      const i = S.sheet && S.sheet.i; if (i === undefined) return;
+      const sh = S.sheet; if (!sh || sh.kind !== 'emo') return;
       const v = ds.v || ($('#emocustom') ? $('#emocustom').value.trim() : '');
       if (!v) { toast('Wpisz emoji'); return; }
-      const c = S.draft.categories[i]; c.emoji = v; c.autoIcon = false; S.draftDirty = true;
+      if (sh.direct) {
+        const st = clone(S.settings), c = st.categories.find(x => x.id === sh.direct); if (!c) return;
+        c.emoji = v; closeSheet(); await write(store.saveSettings(st), 'Ikona zmieniona');
+        if (S.draft) { const dc = S.draft.categories.find(x => x.id === sh.direct); if (dc) dc.emoji = v; }
+        break;
+      }
+      const c = S.draft.categories[sh.i]; c.emoji = v; c.autoIcon = false; S.draftDirty = true;
       closeSheet(); renderMain(true);
       break;
     }
@@ -1338,6 +1463,7 @@ if (!REPORT && location.protocol.startsWith('http')) {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
   setTimeout(() => loadXlsx().catch(() => {}), 3000);
+  setTimeout(() => { if (navigator.onLine !== false) checkUpdate(); }, 5000);
 }
 </script>
 </body>
