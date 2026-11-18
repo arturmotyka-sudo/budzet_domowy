@@ -1,7 +1,9 @@
 {
-  "version": "2.1",
+  "version": "2.3",
   "date": "2026-11-18",
   "changes": [
-    "Nowa zakładka ❓ Pomoc – instrukcja obsługi krok po kroku"
+    "Konta pokazują rzeczywiste pieniądze – spodziewane wpływy i zaplanowane płatności doliczają się dopiero po „✓”",
+    "Pod kontem linijka „po zaplanowanych”",
+    "Pewniejsze wpisywanie PIN-u (z wersji 2.2)"
   ]
 }

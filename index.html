@@ -140,7 +140,11 @@ p.sub{margin:6px 0}
 .dots i.f{background:var(--acc)}
 .lockmsg{min-height:20px;font-size:13px;color:var(--bad)}
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
-.pad button{height:62px;border-radius:18px;font-size:24px;background:var(--card);border:1px solid var(--line)}
+.pad button{height:68px;border-radius:18px;font-size:26px;background:var(--card);border:1px solid var(--line);touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .06s,background .06s}
+.pad button.pr,.pad button:active{transform:scale(.93);background:var(--acc2)}
+.pad button.ok.pr,.pad button.ok:active{background:var(--acc)}
+button,input,select,a{touch-action:manipulation}
+.lockmsg.info{color:var(--mute)}
 .pad button.ok{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
 .pad button.inv{visibility:hidden}
 .linkbtn{border:0;background:none;color:var(--mute);margin-top:18px;text-decoration:underline;font-size:13px}
@@ -229,7 +233,7 @@ const DEFAULT_CATS = [
 const GROUPS = [['zmienne','Życie i wydatki bieżące'], ['stale','Opłaty stałe'], ['oszczednosci','Oszczędności']];
 const GROUP_SHORT = {zmienne:'Bieżące', stale:'Opłaty stałe', oszczednosci:'Oszczędności'};
 const FREQ_LABEL = {m:'co miesiąc', y:'co rok', once:'jednorazowo'};
-const APP_VERSION = '2.1';
+const APP_VERSION = '2.3';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -363,24 +367,25 @@ function ruleWhen(r) {
 function calcFor(st, md, txs) {
   st = st || {wallets:[], categories:[]}; md = md || {};
   const W = {}, C = {};
-  const ensW = id => W[id] || (W[id] = {start:0, inc:0, spent:0, tin:0, tout:0, bal:0, orphan:true});
+  const ensW = id => W[id] || (W[id] = {start:0, inc:0, spent:0, tin:0, tout:0, bal:0, pin:0, pout:0, actual:0, pinc:0, pexp:0, ptin:0, ptout:0, orphan:true});
   const ensC = id => C[id] || (C[id] = {plan:0, spent:0, planned:0, orphan:true});
-  st.wallets.forEach(w => W[w.id] = {start:0, inc:0, spent:0, tin:0, tout:0, bal:0});
+  st.wallets.forEach(w => W[w.id] = {start:0, inc:0, spent:0, tin:0, tout:0, bal:0, pin:0, pout:0, actual:0, pinc:0, pexp:0, ptin:0, ptout:0});
   st.categories.forEach(c => C[c.id] = {plan:0, spent:0, planned:0});
   let startTotal = 0, inc = 0, spent = 0, plannedOut = 0;
   for (const [k, v] of Object.entries(md.start || {})) { ensW(k).start += v; startTotal += v; }
   for (const [k, v] of Object.entries(md.plan || {})) ensC(k).plan += v;
   for (const t of txs || []) {
     const a = t.amount || 0;
-    if (t.type === 'wplyw') { ensW(t.wallet).inc += a; inc += a; }
-    else if (t.type === 'przelew') { ensW(t.wallet).tout += a; ensW(t.to).tin += a; }
-    else { ensW(t.wallet).spent += a; ensC(t.cat).spent += a; spent += a; if (t.planned) { ensC(t.cat).planned += a; plannedOut += a; } }
+    if (t.type === 'wplyw') { ensW(t.wallet).inc += a; inc += a; if (t.planned) { ensW(t.wallet).pin += a; ensW(t.wallet).pinc += a; } }
+    else if (t.type === 'przelew') { ensW(t.wallet).tout += a; ensW(t.to).tin += a; if (t.planned) { ensW(t.wallet).pout += a; ensW(t.wallet).ptout += a; ensW(t.to).pin += a; ensW(t.to).ptin += a; } }
+    else { ensW(t.wallet).spent += a; ensC(t.cat).spent += a; spent += a; if (t.planned) { ensC(t.cat).planned += a; plannedOut += a; ensW(t.wallet).pout += a; ensW(t.wallet).pexp += a; } }
   }
-  for (const w of Object.values(W)) w.bal = w.start + w.inc - w.spent - w.tout + w.tin;
+  // bal = po zaplanowanych (do planowania), actual = rzeczywiście na koncie
+  for (const w of Object.values(W)) { w.bal = w.start + w.inc - w.spent - w.tout + w.tin; w.actual = w.bal - w.pin + w.pout; }
   const planTotal = Object.values(C).reduce((s, c) => s + c.plan, 0);
   const funds = startTotal + inc;
   return { W, C, funds, planTotal, spent, inc, startTotal, plannedOut, toAssign: funds - planTotal, leftTotal: planTotal - spent,
-           balTotal: Object.values(W).reduce((s, w) => s + w.bal, 0) };
+           balTotal: Object.values(W).reduce((s, w) => s + w.bal, 0), actualTotal: Object.values(W).reduce((s, w) => s + w.actual, 0) };
 }
 const calc = () => calcFor(S.settings, S.monthDoc, S.tx);
 const catById = id => (S.settings?.categories || []).find(c => c.id === id);
@@ -389,7 +394,7 @@ const catName = id => catById(id)?.name || '(usunięta kategoria)';
 const walletName = id => walletById(id)?.name || '(usunięte konto)';
 function walletList(c) {
   const list = (S.settings?.wallets || []).slice();
-  for (const [id, w] of Object.entries(c.W)) if (w.orphan && w.bal) list.push({id, name:'(usunięte konto)'});
+  for (const [id, w] of Object.entries(c.W)) if (w.orphan && (w.bal || w.actual)) list.push({id, name:'(usunięte konto)'});
   return list;
 }
 
@@ -480,8 +485,8 @@ function budgetHtml() {
     for (const t of planned) h += `<div class="plrow">${txRow(t, true, true)}${S.readOnly ? '' : `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>`}</div>`;
     h += `</div>`;
   }
-  h += `<h3>Na kontach <span>${zl(c.balTotal)}</span></h3><div class="wallets">`;
-  for (const w of walletList(c)) h += `<button class="wallet" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b>${zl(c.W[w.id].bal)}</b></button>`;
+  h += `<h3>Na kontach <span>${zl(c.actualTotal)}</span></h3><div class="wallets">`;
+  for (const w of walletList(c)) { const x = c.W[w.id]; h += `<button class="wallet" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b>${zl(x.actual)}</b>${x.bal !== x.actual ? `<span class="sub">po zaplanowanych: ${zl(x.bal)}</span>` : ''}</button>`; }
   h += `</div>`;
   for (const [g, label] of GROUPS) {
     const cats = st.categories.filter(x => (x.group || 'zmienne') === g);
@@ -582,12 +587,13 @@ function helpHtml() {
       <span class="neg"><b>−80,00 zł</b></span><span>zaplanowana płatność / zlecenie stałe (jeszcze niezapłacona)</span>
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
       <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek</span>
+      <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
       <span style="color:var(--warn)"><b>Bilans</b></span><span>pomarańczowy – są jeszcze nieprzydzielone pieniądze</span>
       <span class="neg"><b>Bilans</b></span><span>czerwony – zaplanowano więcej, niż macie</span>
       <span class="pos"><b>Bilans</b></span><span>zielony 0 zł – wszystko rozdzielone ✓</span></div><p></p>`, true)
   + sec('🗓️ Początek miesiąca', `<ol>
       <li>Strzałkami ‹ › u góry wybierz miesiąc i stuknij <b>Utwórz budżet</b>.</li>
-      <li>Wpisz <b>środki na start</b> dla każdej osoby – podpowiada się stan kont z końca poprzedniego miesiąca.</li>
+      <li>Wpisz <b>środki na start</b> dla każdej osoby – podpowiada się stan kont z końca poprzedniego miesiąca (po zaplanowanych operacjach).</li>
       <li>Zaznacz <b>Skopiuj plan</b>, jeśli chcesz takie same kwoty jak w poprzednim miesiącu.</li>
       <li>Płatności cykliczne i przypomnienia dodadzą się same jako zaplanowane (czerwone).</li>
       <li>Stuknij kategorię i wpisz <b>plan</b>. Przycisk <b>Wyrównaj bilans</b> wrzuca do tej kategorii całą resztę, tak żeby bilans wyszedł 0 zł.</li></ol>`)
@@ -603,14 +609,14 @@ function helpHtml() {
       <p>Wpływ zwiększa <b>Do rozdysponowania</b> – potem rozdziel go na kategorie, aż bilans znów będzie 0 zł.</p>`)
   + sec('🕒 Zaplanowane płatności (czerwone)', `<p>Dla zleceń stałych i płatności, które musisz zrobić:</p><ol>
       <li>Dodaj wydatek jak zwykle i włącz przełącznik <b>🕒 Zaplanowana</b>.</li>
-      <li>Kwota jest czerwona i od razu odliczona z kategorii i konta (pieniądze są „zarezerwowane”).</li>
+      <li>Kwota jest czerwona i od razu odliczona z kategorii (pieniądze są „zarezerwowane”). Z konta zniknie dopiero po zapłaceniu – pod kontem widać „po zaplanowanych”.</li>
       <li>Na ekranie Budżet pojawia się lista <b>Zaplanowane</b>. Gdy zapłacisz, stuknij <b>✓ Zapłacone</b>.</li></ol>`)
   + sec('💵 Zaplanowane (spodziewane) wpływy', `<ol>
       <li><b>+</b> → zakładka <b>Wpływ</b> → kwota i konto.</li>
       <li>Włącz <b>🕒 Spodziewany wpływ</b>.</li>
       <li>Dla pensji ustaw <b>Powtarzaj: co miesiąc</b> – będzie się sama pojawiać w każdym nowym miesiącu.</li>
       <li>Gdy pieniądze przyjdą: na liście <b>Zaplanowane</b> stuknij <b>✓ Wpłynęło</b>.</li></ol>
-      <p>Spodziewany wpływ od razu liczy się do środków, więc możesz go rozplanować z góry.</p>`)
+      <p>Spodziewany wpływ od razu zwiększa <b>Do rozdysponowania</b>, więc możesz go rozplanować z góry. Na koncie pojawi się dopiero po <b>✓ Wpłynęło</b> – konta zawsze pokazują prawdziwe pieniądze.</p>`)
   + sec('🔁 Powtarzanie i przypomnienia (ubezpieczenia, przeglądy)', `<ul>
       <li><b>Powtarzaj: co miesiąc</b> – np. czynsz, internet, pensja. Pojawi się w każdym kolejnym budżecie jako zaplanowana.</li>
       <li><b>Powtarzaj: co rok</b> – np. OC, przegląd auta. Wróci w tym samym miesiącu za rok jako czerwona przypominajka.</li>
@@ -711,13 +717,14 @@ function updatePlanHint() {
 /* wallet sheet */
 function openWallet(id) {
   const c = calc(), w = c.W[id];
-  const transfers = w.tin - w.tout;
+  const transfers = (w.tin - w.ptin) - (w.tout - w.ptout);
   openSheet(`${head(esc(walletName(id)))}
-    <div class="center"><span class="sub">Na koncie teraz</span><div style="font-size:30px;font-weight:700">${zl(w.bal)}</div></div>
+    <div class="center"><span class="sub">Na koncie teraz</span><div style="font-size:30px;font-weight:700">${zl(w.actual)}</div>${w.bal !== w.actual ? `<span class="sub">po zaplanowanych: <b>${zl(w.bal)}</b></span>` : ''}</div>
     ${S.readOnly ? `<div class="card"><div class="kv"><span>Na start miesiąca</span><b>${zl(w.start)}</b></div>` : `
     <label class="f">Środki na start miesiąca</label>
     <input class="amt" id="wstart" inputmode="decimal" placeholder="0,00" value="${toInput(w.start)}"><div class="card">`}
-    <div class="kv"><span>Wpływy</span><b class="pos">+${zl(w.inc)}</b></div><div class="kv"><span>Wydatki</span><b>−${zl(w.spent)}</b></div><div class="kv"><span>Przelewy</span><b>${transfers >= 0 ? '+' : '−'}${zl(Math.abs(transfers))}</b></div></div>
+    <div class="kv"><span>Wpływy</span><b class="pos">+${zl(w.inc - w.pinc)}</b></div><div class="kv"><span>Wydatki</span><b>−${zl(w.spent - w.pexp)}</b></div><div class="kv"><span>Przelewy</span><b>${transfers >= 0 ? '+' : '−'}${zl(Math.abs(transfers))}</b></div>
+    ${w.pin ? `<div class="kv"><span>🕒 Spodziewane wpływy</span><b class="pos">+${zl(w.pin)}</b></div>` : ''}${w.pout ? `<div class="kv"><span>🕒 Zaplanowane płatności</span><b class="neg">−${zl(w.pout)}</b></div>` : ''}</div>
     ${S.readOnly ? '' : `<button class="btn" data-act="wsave">Zapisz środki na start</button>
     <div class="row2"><button class="btn sec" data-act="addtx" data-type="wplyw" data-wallet="${esc(id)}">+ Wpływ</button><button class="btn sec" data-act="addtx" data-type="przelew" data-wallet="${esc(id)}">🔁 Przelew</button></div>`}`,
     {kind:'wallet', id});
@@ -809,7 +816,9 @@ async function openNewMonth() {
   const planSum = pd ? Object.values(pd.plan || {}).reduce((s, v) => s + v, 0) : 0;
   const pr = pendingRulesFor(S.month);
   let h = head('Budżet: ' + esc(monthLabel(S.month)));
-  h += `<label class="f">Środki na start${pc ? ` (stan kont na koniec: ${esc(monthLabel(prevKey))})` : ''}</label>`;
+  h += `<label class="f">Środki na start${pc ? ` (stan kont na koniec: ${esc(monthLabel(prevKey))}, po zaplanowanych)` : ''}</label>`;
+  const unresolved = ptx.filter(t => t.planned).length;
+  if (unresolved) h += `<div class="banner warn">W miesiącu ${esc(monthLabel(prevKey))} ${unresolved === 1 ? 'jest 1 zaplanowana pozycja' : `jest ${unresolved} zaplanowanych pozycji`} bez „✓”. Kwoty poniżej zakładają, że się wykonają.</div>`;
   for (const w of S.settings.wallets) h += `<div class="srow w" style="grid-template-columns:110px 1fr"><span>${esc(w.name)}</span><input inputmode="decimal" data-nw="${esc(w.id)}" placeholder="0,00" value="${pc ? toInput(pc.W[w.id]?.bal || 0) : ''}"></div>`;
   if (pd) h += `<label class="chk" style="margin-top:10px"><input type="checkbox" id="nmcopy" checked> Skopiuj plan z: ${esc(monthLabel(prevKey))} (${zl(planSum)})</label>`;
   else h += `<p class="sub">Plan kategorii ustawisz po utworzeniu – stuknij kategorię, żeby wpisać kwotę.</p>`;
@@ -865,8 +874,8 @@ async function exportXlsx() {
   for (const x of st.categories) { const cc = c.C[x.id]; sum.push([x.name, GROUP_SHORT[x.group || 'zmienne'], cc.plan / 100, cc.spent / 100, cc.planned / 100, (cc.plan - cc.spent) / 100]); }
   for (const [id, v] of Object.entries(c.C)) if (v.orphan && (v.plan || v.spent)) sum.push(['(usunięta kategoria)', '', v.plan / 100, v.spent / 100, v.planned / 100, (v.plan - v.spent) / 100]);
   sum.push(['RAZEM', '', c.planTotal / 100, c.spent / 100, c.plannedOut / 100, c.leftTotal / 100], []);
-  sum.push(['Konto', 'Na start', 'Wpływy', 'Wydatki', 'Przelewy', 'Stan teraz']);
-  for (const w of walletList(c)) { const x = c.W[w.id]; sum.push([w.name, x.start / 100, x.inc / 100, x.spent / 100, (x.tin - x.tout) / 100, x.bal / 100]); }
+  sum.push(['Konto', 'Na start', 'Wpływy', 'Wydatki', 'Przelewy', 'Stan teraz', 'Po zaplanowanych']);
+  for (const w of walletList(c)) { const x = c.W[w.id]; sum.push([w.name, x.start / 100, x.inc / 100, x.spent / 100, (x.tin - x.tout) / 100, x.actual / 100, x.bal / 100]); }
   sum.push([], ['Do rozdysponowania', c.toAssign / 100]);
   const ops = [['Data', 'Typ', 'Kategoria', 'Konto', 'Na konto', 'Kwota', 'Status', 'Powtarzanie', 'Notatka']];
   const rowsMeta = [];
@@ -878,7 +887,7 @@ async function exportXlsx() {
     rowsMeta.push(t);
   }
   const money = ws => { for (const k in ws) if (k[0] !== '!' && ws[k].t === 'n') ws[k].z = '#,##0.00 "zł"'; return ws; };
-  const ws1 = money(X.utils.aoa_to_sheet(sum)); ws1['!cols'] = [{wch:24}, {wch:14}, {wch:13}, {wch:13}, {wch:17}, {wch:13}];
+  const ws1 = money(X.utils.aoa_to_sheet(sum)); ws1['!cols'] = [{wch:24}, {wch:14}, {wch:13}, {wch:13}, {wch:17}, {wch:13}, {wch:17}];
   const ws2 = money(X.utils.aoa_to_sheet(ops)); ws2['!cols'] = [{wch:11}, {wch:9}, {wch:18}, {wch:14}, {wch:14}, {wch:13}, {wch:12}, {wch:12}, {wch:30}];
   rowsMeta.forEach((t, i) => { const cell = ws2['F' + (i + 2)]; if (cell) cell.z = t.type === 'wplyw' ? '[Color10]#,##0.00 "zł"' : t.planned ? '[Red]#,##0.00 "zł"' : '#,##0.00 "zł"'; });
   const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws1, 'Podsumowanie'); X.utils.book_append_sheet(wb, ws2, 'Operacje');
@@ -945,15 +954,16 @@ async function lockKey(k) {
   if (Date.now() < L.until) { lockDraw(`Za dużo prób. Spróbuj za ${Math.ceil((L.until - Date.now()) / 1000)} s`); return; }
   if (k === 'del') { L.buf = L.buf.slice(0, -1); lockDraw(); return; }
   if (k === 'ok') { if (lockNewStep()) await lockSubmit(); return; }
-  if (L.buf.length >= 6) return;
-  L.buf += k; lockDraw();
   const target = lockVerifying() ? (pinRec()?.len || 4) : lockNewStep() ? 0 : L.first.length;
-  if (target && L.buf.length === target) setTimeout(lockSubmit, 120);
+  if (L.buf.length >= (target || 6)) return;
+  L.buf += k; lockDraw();
+  if (target && L.buf.length === target) { L.busy = true; setTimeout(() => { L.busy = false; lockSubmit(); }, 100); }
 }
 async function lockSubmit() {
   const pin = L.buf;
   if (lockVerifying()) {
-    L.busy = true; const ok = await pinCheck(pin); L.busy = false;
+    L.busy = true; const m = $('#lockMsg'); m.textContent = 'Sprawdzam…'; m.classList.add('info');
+    const ok = await pinCheck(pin); L.busy = false; m.classList.remove('info');
     if (!ok) { L.buf = ''; if (++L.fails >= 5) { L.until = Date.now() + 30000; L.fails = 0; } lockShake(); lockDraw('Błędny PIN'); return; }
     L.fails = 0;
     if (L.mode === 'unlock') { lockClose(); return; }
@@ -969,7 +979,14 @@ async function lockSubmit() {
   L.busy = false;
   const change = L.mode === 'change'; lockClose(); toast(change ? 'PIN zmieniony' : 'PIN ustawiony');
 }
-$('#pad').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) lockKey(b.dataset.k); });
+$('#pad').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  e.preventDefault();
+  b.classList.add('pr'); setTimeout(() => b.classList.remove('pr'), 110);
+  try { navigator.vibrate && navigator.vibrate(8); } catch (_) {}
+  lockKey(b.dataset.k);
+});
+$('#pad').addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('keydown', e => {
   if (!L.mode) return;
   if (/^[0-9]$/.test(e.key)) lockKey(e.key); else if (e.key === 'Backspace') lockKey('del'); else if (e.key === 'Enter') lockKey('ok');
