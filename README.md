@@ -1,55 +1,75 @@
 # Budżet domowy – aplikacja na telefon
 
-Prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, a dane są zapisane **tylko w Twoim telefonie**.
+**Wersja 2.8** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
-## Instalacja (jednorazowo, ok. 10 minut, na komputerze)
+Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
-1. Rozpakuj `budzet-app.zip`.
-2. Zaloguj się na github.com i kliknij **New repository** (zielony przycisk lub „+” w prawym górnym rogu).
-   - Nazwa: `budzet_domowy`
-   - Zaznacz **Public** (darmowe GitHub Pages wymaga publicznego repozytorium; publiczny jest tylko kod aplikacji, Twoje dane nigdy tam nie trafiają)
-   - Kliknij **Create repository**.
-3. Na stronie nowego repozytorium kliknij **uploading an existing file** (albo **Add file → Upload files**).
-4. Przeciągnij **wszystkie pliki** z rozpakowanego folderu (nie sam folder):
-   `index.html`, `manifest.webmanifest`, `sw.js`, `version.json`, `xlsx.full.min.js`, `icon-192.png`, `icon-512.png`, `icon-maskable.png` (README.md opcjonalnie).
-   Kliknij **Commit changes**.
-5. Wejdź w **Settings → Pages**. W „Build and deployment” ustaw:
-   Source: **Deploy from a branch**, Branch: **main**, folder **/ (root)** → **Save**.
-6. Po 1–2 minutach aplikacja będzie pod adresem:
-   `https://TWOJ-LOGIN.github.io/budzet_domowy/`
+## Pliki w repozytorium
 
-## Instalacja na telefonie (Android)
+| Plik | Do czego |
+|---|---|
+| `index.html` | cała aplikacja |
+| `sw.js` | działanie bez internetu i aktualizacje |
+| `version.json` | numer najnowszej wersji i lista zmian (sprawdzany w Pomoc → Aktualizacja) |
+| `manifest.webmanifest` | nazwa, kolory i ikony aplikacji na telefonie |
+| `moneta-192.png`, `moneta-512.png`, `moneta-maskable.png` | ikona – złota moneta |
+| `xlsx.full.min.js` | eksport do Excela |
+| `README.md` | ten opis |
 
-1. Otwórz ten adres w **Chrome** na telefonie.
-2. Menu **⋮** → **Zainstaluj aplikację** (lub **Dodaj do ekranu głównego**).
-3. Na ekranie pojawi się ikona złotej monety. Od teraz aplikacja działa także bez internetu.
+Stare pliki `icon-192.png`, `icon-512.png`, `icon-maskable.png` nie są już używane – można je usunąć.
 
-## Codzienne używanie
+## Pierwsza instalacja
 
-- **Początek miesiąca:** „Utwórz budżet” → wpisz, ile pieniędzy jest na każdym koncie (Ja / Żona) → stuknij kategorię i wpisz plan. Gdy „Do rozdysponowania” pokazuje 0 zł, wszystko jest rozdzielone.
-- **Wydatek:** zielony przycisk **+** → kwota → kategoria → czyje pieniądze → Dodaj. Kwota schodzi z kategorii i z konta naraz.
-- **Wpływ / Przelew:** w tym samym okienku (zakładki u góry) albo po stuknięciu konta.
-- **Kolejny miesiąc:** strzałka **›** → „Utwórz budżet” – stan kont przechodzi automatycznie, plan można skopiować.
+**Na komputerze (jednorazowo):**
+1. Na github.com utwórz **publiczne** repozytorium (np. `budzet_domowy`). Publiczny jest tylko kod – Twoje dane nigdy tam nie trafiają.
+2. **Add file → Upload files** → przeciągnij wszystkie pliki z tabeli powyżej → **Commit changes**.
+3. **Settings → Pages** → Source: **Deploy from a branch**, Branch: **main**, folder **/ (root)** → **Save**.
+4. Po 1–2 minutach aplikacja działa pod adresem `https://TWOJ-LOGIN.github.io/NAZWA-REPOZYTORIUM/`.
 
-## Raport dla żony / kopia zapasowa
+**Na telefonie (Android):**
+1. Otwórz ten adres w **Chrome** → menu **⋮** → **Zainstaluj aplikację**.
+2. Przy pierwszym uruchomieniu ustaw **PIN** (4–6 cyfr), potem konta i kategorie.
 
-- **📤 Wyślij raport** (Historia lub Ustawienia) tworzy jeden plik `.html`. Wybierz Gmail/pocztę i wyślij sobie.
-- Na komputerze otwórz załącznik dwuklikiem – w przeglądarce zobaczysz cały budżet (wszystkie miesiące) w trybie podglądu.
-- Ten sam plik to **kopia zapasowa**: na nowym telefonie zainstaluj aplikację i wybierz „Wczytaj z pliku”.
-- **📊 Excel** – plik .xlsx z podsumowaniem miesiąca i listą operacji.
+## Aktualizacja (dane zostają)
+
+Kwoty są w pamięci telefonu, nie w plikach na GitHubie – podmiana plików ich nie rusza. Warunek: ten sam adres strony (nie zmieniaj nazwy repozytorium ani loginu).
+
+1. Na GitHubie: **Add file → Upload files** → przeciągnij nowe pliki → **Commit changes** (pliki o tych samych nazwach zostaną nadpisane).
+2. Odczekaj 2–3 minuty.
+3. W aplikacji: zakładka **❓ Pomoc → Aktualizacja** → **Aktualizuj**. Gdy jest nowa wersja, na zakładce Pomoc widać czerwoną kropkę.
+
+Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSION` w `index.html`, `version` w `version.json`, `CACHE` w `sw.js`.
+
+Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; telefon na ładowarce i w Wi-Fi). Szybciej: wyślij raport (kopię), odinstaluj aplikację, zainstaluj ponownie i w razie potrzeby wczytaj raport.
+
+## Najważniejsze funkcje (skrót)
+
+- **Bilans do zera** – „Do rozdysponowania” pokazuje, ile pieniędzy nie ma jeszcze przydziału.
+- **Wydatki, wpływy, przelewy** – zielony przycisk **+**.
+- **Zaplanowane płatności** (czerwone, np. zlecenia stałe) i **spodziewane wpływy** – rezerwują pieniądze w budżecie; na koncie zmieniają stan dopiero po **✓ Zapłacone / ✓ Wpłynęło**.
+- **Powtarzanie** co miesiąc / co rok (pensja, czynsz, ubezpieczenie, przegląd) i jednorazowe kopiowanie na następny miesiąc lub za rok.
+- **Przenoszenie salda** – stan kont z końca miesiąca (także minus) sam przechodzi na kolejny; możliwa korekta, gdy stan w banku jest inny.
+- **Plan na rok do przodu** – jeden przycisk tworzy 12 kolejnych budżetów; zmiany planu i powtarzających się pozycji: tylko ten miesiąc albo ten i kolejne.
+- **Ikony kategorii** dobierane automatycznie po nazwie (słownik ~60 ikon), z możliwością zmiany.
+- **Raport** – jeden plik HTML do wysłania mailem: na komputerze podgląd całego budżetu, na telefonie kopia zapasowa (**Wczytaj z pliku**).
+- **Excel** – podsumowanie miesiąca i lista operacji.
+- **Czyszczenie miesiąca** z potwierdzeniem PIN-em.
+- **Motyw** jasny / ciemny / automatyczny.
 
 ## Ważne
 
-- Dane są tylko w telefonie. **Odinstalowanie aplikacji lub wyczyszczenie danych Chrome usuwa je** – dlatego wysyłaj raport co jakiś czas (aplikacja przypomni po 14 dniach).
-- Aplikacja przy pierwszym uruchomieniu prosi o **PIN** (4–6 cyfr). Blokuje się przy każdym otwarciu i po minucie w tle. Zapomniany PIN = usunięcie danych z telefonu i wczytanie ostatniego raportu.
+- Dane są tylko w telefonie. **Odinstalowanie aplikacji lub wyczyszczenie danych Chrome może je usunąć** – wysyłaj raport regularnie (aplikacja przypomina po 14 dniach).
+- PIN chroni przed podejrzeniem przez osobę z telefonem w ręku, ale nie szyfruje danych. Zapomniany PIN = usunięcie danych z telefonu i wczytanie ostatniego raportu.
 
-## Aktualizacja aplikacji (dane zostają)
+## Historia wersji
 
-Twoje kwoty są w pamięci telefonu, a nie w plikach na GitHubie – podmiana plików ich nie rusza. Warunek: ten sam adres strony (nie zmieniaj nazwy repozytorium ani loginu).
-
-1. Na GitHubie: **Add file → Upload files** → przeciągnij nowe pliki → **Commit changes** (pliki o tych samych nazwach zostaną nadpisane).
-2. Po 1–2 minutach w aplikacji: **Ustawienia → Aktualizacja** → pojawi się nowa wersja → **Aktualizuj**.
-
-Numer wersji jest w trzech miejscach i przy każdej zmianie musi być taki sam: `APP_VERSION` w `index.html`, `version` w `version.json`, `CACHE` w `sw.js`.
-
-Dla pewności przed większą aktualizacją wyślij sobie raport (kopię).
+- **2.8** – żywy zielony kolor kwoty do rozdysponowania, komunikat „Do rozdysponowania pozostało”.
+- **2.7** – przenoszenie salda między miesiącami, plan na 12 miesięcy do przodu, korekty „tylko ten / ten i kolejne”, zmiana ikony z kategorii, aktualizacja w zakładce Pomoc.
+- **2.6** – automatyczne ikony kategorii i wybór ikony z listy.
+- **2.5** – czyszczenie miesiąca z potwierdzeniem PIN-em.
+- **2.4** – nowe nazwy plików ikony (złota moneta).
+- **2.3** – konta pokazują rzeczywiste pieniądze, linijka „po zaplanowanych”.
+- **2.2** – pewniejsze wpisywanie PIN-u.
+- **2.1** – zakładka Pomoc z instrukcją.
+- **2.0** – motyw, zaplanowane płatności, powtarzanie, PIN, ikona monety, aktualizacje.
+- **1.0** – pierwsza wersja: budżet kopertowy, raport, Excel, działanie offline.
