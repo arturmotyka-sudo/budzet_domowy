@@ -1,12 +1,7 @@
 {
-  "version": "2.0",
+  "version": "2.1",
   "date": "2026-11-18",
   "changes": [
-    "Przełącznik motywu: jasny / ciemny / automatyczny",
-    "Zaplanowane płatności na czerwono (zlecenia stałe) z przyciskiem „Zapłacone”",
-    "Powtarzanie co miesiąc / co rok i kopiowanie na następny miesiąc lub za rok",
-    "PIN przy uruchomieniu",
-    "Nowa ikona – złota moneta",
-    "Sekcja Aktualizacja z numerem wersji"
+    "Nowa zakładka ❓ Pomoc – instrukcja obsługi krok po kroku"
   ]
 }

@@ -146,6 +146,15 @@ p.sub{margin:6px 0}
 .linkbtn{border:0;background:none;color:var(--mute);margin-top:18px;text-decoration:underline;font-size:13px}
 .shake{animation:sh .35s}
 @keyframes sh{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+details.help{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:8px 0;padding:0 14px}
+details.help summary{padding:14px 0;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details.help summary::-webkit-details-marker{display:none}
+details.help summary::after{content:'›';font-size:22px;color:var(--mute);transform:rotate(90deg);transition:transform .15s;line-height:1}
+details.help[open] summary::after{transform:rotate(-90deg)}
+details.help p,details.help ol,details.help ul{font-size:14px;margin:0 0 12px;padding-left:0}
+details.help ol,details.help ul{padding-left:20px}
+details.help li{margin:4px 0}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;font-size:14px;align-items:center}
 body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:hidden}
 </style>
 </head>
@@ -157,6 +166,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
   <button data-act="tab" data-tab="budzet"><span class="ico">💰</span>Budżet</button>
   <button data-act="tab" data-tab="historia"><span class="ico">🧾</span>Historia</button>
   <button data-act="tab" data-tab="ustawienia" id="tab-ust"><span class="ico">⚙️</span>Ustawienia</button>
+  <button data-act="tab" data-tab="pomoc"><span class="ico">❓</span>Pomoc</button>
 </nav>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div class="lock" id="lock"><div class="lockbox" id="lockbox">
@@ -219,7 +229,7 @@ const DEFAULT_CATS = [
 const GROUPS = [['zmienne','Życie i wydatki bieżące'], ['stale','Opłaty stałe'], ['oszczednosci','Oszczędności']];
 const GROUP_SHORT = {zmienne:'Bieżące', stale:'Opłaty stałe', oszczednosci:'Oszczędności'};
 const FREQ_LABEL = {m:'co miesiąc', y:'co rok', once:'jednorazowo'};
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -389,11 +399,11 @@ function render() { renderHeader(); renderMain(); renderChrome(); }
 
 function renderHeader() {
   const h = $('#hdr');
-  const showNav = S.settings && S.tab !== 'ustawienia';
+  const showNav = S.settings && S.tab !== 'ustawienia' && S.tab !== 'pomoc';
   const tb = `<button class="hbtn" data-act="theme" aria-label="Motyw: ${THEME_LABEL[themePref()]}">${THEME_ICON[themePref()]}</button>`;
   const html = showNav
     ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div>${tb}`
-    : `<div class="htitle">${S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
+    : `<div class="htitle">${S.tab === 'pomoc' && S.settings ? 'Pomoc' : S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
   if (h.innerHTML !== html) h.innerHTML = html;
 }
 
@@ -401,7 +411,7 @@ function renderChrome() {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
   $('#tabs').hidden = !S.settings;
   $('#tab-ust').classList.toggle('hidden', !!REPORT);
-  $('#fab').hidden = !(S.settings && S.monthDoc && S.tab !== 'ustawienia' && !S.readOnly);
+  $('#fab').hidden = !(S.settings && S.monthDoc && S.tab !== 'ustawienia' && S.tab !== 'pomoc' && !S.readOnly);
 }
 
 function renderMain(force) {
@@ -427,6 +437,7 @@ function mainHtml() {
   if (S.settings === undefined) return b + `<div class="empty">Wczytywanie…</div>`;
   if (S.settings === null) return b + onboardHtml();
   if (S.tab === 'ustawienia') return b + settingsHtml();
+  if (S.tab === 'pomoc') return b + helpHtml();
   if (S.monthDoc === undefined) return b + `<div class="empty">Wczytywanie miesiąca…</div>`;
   b += backupBanner();
   if (S.monthDoc === null) return b + noMonthHtml();
@@ -562,6 +573,64 @@ function settingsHtml() {
   h += `<div class="card" style="margin-top:22px"><b>Jak to działa</b>
     <p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie, aż „Do rozdysponowania” pokaże 0 zł. Każdy wydatek (przycisk +) zmniejsza kategorię i konto naraz. Zaplanowane płatności (czerwone) są od razu odliczone – po zapłaceniu stuknij „✓ Zapłacone”.</p></div>`;
   return h;
+}
+
+function helpHtml() {
+  const sec = (title, body, open) => `<details class="help"${open ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
+  return `<div class="card"><b>Budżet „kopertowy” w skrócie</b><p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie (koperty), aż <b>Do rozdysponowania</b> pokaże <b>0 zł</b>. Każdy wydatek zmniejsza jednocześnie kategorię i konto, więc bilans dalej wynosi zero.</p></div>`
+  + sec('🎨 Co oznaczają kolory', `<div class="legend">
+      <span class="neg"><b>−80,00 zł</b></span><span>zaplanowana płatność / zlecenie stałe (jeszcze niezapłacona)</span>
+      <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
+      <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek</span>
+      <span style="color:var(--warn)"><b>Bilans</b></span><span>pomarańczowy – są jeszcze nieprzydzielone pieniądze</span>
+      <span class="neg"><b>Bilans</b></span><span>czerwony – zaplanowano więcej, niż macie</span>
+      <span class="pos"><b>Bilans</b></span><span>zielony 0 zł – wszystko rozdzielone ✓</span></div><p></p>`, true)
+  + sec('🗓️ Początek miesiąca', `<ol>
+      <li>Strzałkami ‹ › u góry wybierz miesiąc i stuknij <b>Utwórz budżet</b>.</li>
+      <li>Wpisz <b>środki na start</b> dla każdej osoby – podpowiada się stan kont z końca poprzedniego miesiąca.</li>
+      <li>Zaznacz <b>Skopiuj plan</b>, jeśli chcesz takie same kwoty jak w poprzednim miesiącu.</li>
+      <li>Płatności cykliczne i przypomnienia dodadzą się same jako zaplanowane (czerwone).</li>
+      <li>Stuknij kategorię i wpisz <b>plan</b>. Przycisk <b>Wyrównaj bilans</b> wrzuca do tej kategorii całą resztę, tak żeby bilans wyszedł 0 zł.</li></ol>`)
+  + sec('➖ Wydatek', `<ol>
+      <li>Zielony przycisk <b>+</b> (prawy dolny róg).</li>
+      <li>Wpisz kwotę, wybierz <b>kategorię</b> (obok nazwy widać, ile w niej zostało) i <b>z czyich pieniędzy</b>.</li>
+      <li>Opcjonalnie data i notatka → <b>Dodaj</b>.</li></ol>
+      <p>Szybciej: stuknij kategorię → <b>+ Dodaj wydatek</b>.</p>`)
+  + sec('➕ Wpływ (pensja, premia, zwrot)', `<ol>
+      <li><b>+</b> → zakładka <b>Wpływ</b> u góry okienka.</li>
+      <li>Kwota i <b>na które konto</b> (Ja / Żona) → <b>Dodaj</b>.</li></ol>
+      <p>Albo stuknij kafelek konta (w sekcji „Na kontach”) → <b>+ Wpływ</b>.</p>
+      <p>Wpływ zwiększa <b>Do rozdysponowania</b> – potem rozdziel go na kategorie, aż bilans znów będzie 0 zł.</p>`)
+  + sec('🕒 Zaplanowane płatności (czerwone)', `<p>Dla zleceń stałych i płatności, które musisz zrobić:</p><ol>
+      <li>Dodaj wydatek jak zwykle i włącz przełącznik <b>🕒 Zaplanowana</b>.</li>
+      <li>Kwota jest czerwona i od razu odliczona z kategorii i konta (pieniądze są „zarezerwowane”).</li>
+      <li>Na ekranie Budżet pojawia się lista <b>Zaplanowane</b>. Gdy zapłacisz, stuknij <b>✓ Zapłacone</b>.</li></ol>`)
+  + sec('💵 Zaplanowane (spodziewane) wpływy', `<ol>
+      <li><b>+</b> → zakładka <b>Wpływ</b> → kwota i konto.</li>
+      <li>Włącz <b>🕒 Spodziewany wpływ</b>.</li>
+      <li>Dla pensji ustaw <b>Powtarzaj: co miesiąc</b> – będzie się sama pojawiać w każdym nowym miesiącu.</li>
+      <li>Gdy pieniądze przyjdą: na liście <b>Zaplanowane</b> stuknij <b>✓ Wpłynęło</b>.</li></ol>
+      <p>Spodziewany wpływ od razu liczy się do środków, więc możesz go rozplanować z góry.</p>`)
+  + sec('🔁 Powtarzanie i przypomnienia (ubezpieczenia, przeglądy)', `<ul>
+      <li><b>Powtarzaj: co miesiąc</b> – np. czynsz, internet, pensja. Pojawi się w każdym kolejnym budżecie jako zaplanowana.</li>
+      <li><b>Powtarzaj: co rok</b> – np. OC, przegląd auta. Wróci w tym samym miesiącu za rok jako czerwona przypominajka.</li>
+      <li>Jednorazowo: otwórz istniejącą operację → <b>📅 Na następny miesiąc</b> albo <b>📅 Za rok</b>.</li>
+      <li>Pozycje dodają się w chwili tworzenia budżetu na dany miesiąc. Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
+      <li>Zmiana kwoty w powtarzanej operacji obejmuje też kolejne miesiące. Przy usuwaniu wybierasz: tylko tę albo też przyszłe.</li></ul>`)
+  + sec('🔄 Przelew między kontami', `<p><b>+</b> → zakładka <b>Przelew</b> → z którego konta na które. Przelew zmienia tylko stan kont, nie rusza kategorii ani bilansu.</p>`)
+  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
+  + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
+      <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
+      <li>Na komputerze otwórz załącznik dwuklikiem – w przeglądarce widać cały budżet (wszystkie miesiące) w trybie podglądu.</li>
+      <li>Ten sam plik to kopia: na nowym telefonie wybierz <b>Wczytaj z pliku</b>.</li>
+      <li><b>📊 Excel</b> – plik z podsumowaniem miesiąca i listą operacji (zaplanowane na czerwono).</li>
+      <li>Dane są tylko w telefonie – wysyłaj raport regularnie (aplikacja przypomni po 14 dniach).</li></ul>`)
+  + sec('🔒 PIN', `<ul>
+      <li>Aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
+      <li>Zmiana: <b>Ustawienia → Zmień PIN</b>.</li>
+      <li>Zapomniany PIN: na ekranie blokady <b>Nie pamiętam PIN-u</b> – usuwa dane z telefonu, potem wczytujesz ostatni raport.</li></ul>`)
+  + sec('⬇️ Aktualizacja', `<p><b>Ustawienia → Aktualizacja</b> pokazuje Twoją wersję i najnowszą. Gdy jest nowsza – stuknij <b>Aktualizuj</b>. Kwoty i ustawienia zostają bez zmian.</p>`)
+  + `<p class="sub center" style="margin:16px 0">Budżet domowy · wersja ${APP_VERSION}</p>`;
 }
 
 function updateHtml() {
