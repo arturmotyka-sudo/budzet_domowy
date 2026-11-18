@@ -1,9 +1,8 @@
 {
-  "version": "2.3",
+  "version": "2.4",
   "date": "2026-11-18",
   "changes": [
-    "Konta pokazują rzeczywiste pieniądze – spodziewane wpływy i zaplanowane płatności doliczają się dopiero po „✓”",
-    "Pod kontem linijka „po zaplanowanych”",
-    "Pewniejsze wpisywanie PIN-u (z wersji 2.2)"
+    "Nowe nazwy plików ikony – Chrome łatwiej podmieni ikonę na złotą monetę",
+    "Konta pokazują rzeczywiste pieniądze (z wersji 2.3)"
   ]
 }

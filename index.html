@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#2f6f5e">
 <title>Budżet domowy</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="moneta-192.png">
 <style>
 :root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#c0392b;--badbg:#fbe8e5;--ok:#2f6f5e}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef8174;--badbg:#321d1b;--ok:#6cc2a6}}
@@ -174,7 +174,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 </nav>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div class="lock" id="lock"><div class="lockbox" id="lockbox">
-  <img src="icon-192.png" alt="">
+  <img src="moneta-192.png" alt="">
   <h2 id="lockTitle">Budżet domowy</h2>
   <div class="sub" id="lockSub"></div>
   <div class="dots" id="dots"></div>
@@ -233,7 +233,7 @@ const DEFAULT_CATS = [
 const GROUPS = [['zmienne','Życie i wydatki bieżące'], ['stale','Opłaty stałe'], ['oszczednosci','Oszczędności']];
 const GROUP_SHORT = {zmienne:'Bieżące', stale:'Opłaty stałe', oszczednosci:'Oszczędności'};
 const FREQ_LABEL = {m:'co miesiąc', y:'co rok', once:'jednorazowo'};
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
