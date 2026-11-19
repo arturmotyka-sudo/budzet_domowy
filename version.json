@@ -1,7 +1,7 @@
 {
-  "version": "4.2",
+  "version": "4.3",
   "date": "2026-11-19",
   "changes": [
-    "Kolory stanu konta: czerwony do 500 zł, pomarańczowy do 1 500 zł, zielony powyżej – progi do zmiany w Ustawieniach"
+    "Polecanie aplikacji: wysyłka linku z instrukcją mailem, przez komunikator albo kopiowanie linku (Ustawienia)"
   ]
 }

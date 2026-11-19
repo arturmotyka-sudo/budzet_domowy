@@ -349,7 +349,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -832,6 +832,10 @@ function settingsHtml() {
   }
   h += `</div>`;
   const lv = {low:(d.colors && d.colors.low) ?? 50000, mid:(d.colors && d.colors.mid) ?? 150000};
+  h += `<h3>📨 Poleć aplikację</h3><div class="card">
+    <p class="sub" style="margin-top:0">Wyślij komuś link do instalacji z krótką instrukcją. Dostanie własną, pustą aplikację – Twoje dane zostają tylko u Ciebie.</p>
+    <div class="row2" style="grid-template-columns:1fr auto"><input id="refmail" type="email" inputmode="email" placeholder="adres e-mail (opcjonalnie)"><button class="btn" style="margin:0;padding:0 16px" data-act="refmail">✉️ Wyślij</button></div>
+    <div class="row2"><button class="btn sec" data-act="refshare">📤 Udostępnij…</button><button class="btn sec" data-act="refcopy">🔗 Kopiuj link</button></div></div>`;
   h += `<h3>Kolory stanu konta</h3><div class="card">
     <div class="row2"><div><label class="f" style="margin-top:0"><span class="b-low">●</span> Czerwony do</label><input inputmode="decimal" data-in="colLow" value="${toInput(lv.low)}"></div>
     <div><label class="f" style="margin-top:0"><span class="b-mid">●</span> Pomarańczowy do</label><input inputmode="decimal" data-in="colMid" value="${toInput(lv.mid)}"></div></div>
@@ -942,6 +946,7 @@ function helpHtml() {
       <li>Ten sam plik to kopia: na nowym telefonie wybierz <b>Wczytaj z pliku</b>.</li>
       <li><b>📊 Excel</b> – plik z podsumowaniem miesiąca i listą operacji (zaplanowane na czerwono).</li>
       <li>Dane są tylko w telefonie – wysyłaj raport regularnie (aplikacja przypomni po 14 dniach).</li></ul>`)
+  + sec('📨 Polecanie aplikacji', `<p><b>Ustawienia → Poleć aplikację</b>: wpisz adres e-mail i stuknij <b>✉️ Wyślij</b> (otworzy się poczta z gotową wiadomością: link + instrukcja instalacji), albo <b>📤 Udostępnij</b> przez WhatsApp/SMS, albo <b>🔗 Kopiuj link</b>. Odbiorca dostaje własną, pustą aplikację – Twoje dane nie są wysyłane.</p>`)
   + sec('🔒 PIN', `<ul>
       <li>Gdy PIN jest włączony, aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
       <li>Zmiana: <b>Ustawienia → Zmień PIN</b>. Wyłączenie: <b>Ustawienia → Wyłącz PIN</b> (potwierdzasz obecnym PIN-em). Ponowne włączenie: <b>Włącz PIN</b>.</li>
@@ -1201,6 +1206,19 @@ document.addEventListener('touchend', () => {
   SW = null;
 });
 const swWrap = (inner, delAct, id) => S.readOnly ? inner : `<div class="sw-wrap"><div class="sw-del"><button data-act="${delAct}" data-id="${esc(id)}">🗑<br>Usuń</button></div><div class="sw-row">${inner}</div></div>`;
+
+/* polecanie aplikacji */
+const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, '');
+const refSubject = 'Budżet domowy – aplikacja do planowania wydatków';
+const refText = () => `Cześć! Polecam prostą aplikację do planowania domowego budżetu (wpływy, płatności, limity na wydatki, plan na rok do przodu). Działa na telefonie bez internetu, a dane są zapisane tylko w Twoim telefonie.
+
+Link: ${appUrl()}
+
+Jak zainstalować:
+• Android: otwórz link w Chrome → menu ⋮ → „Zainstaluj aplikację”.
+• iPhone: otwórz link w Safari → przycisk Udostępnij → „Do ekranu początkowego”.
+
+Przy pierwszym uruchomieniu możesz ustawić PIN (albo „Bez PIN-u”), potem konta i kategorie. Pełna instrukcja jest w aplikacji w zakładce ❓ Pomoc.`;
 
 /* rozliczenie: skąd biorą się kwoty */
 function openRecon() {
@@ -1562,6 +1580,18 @@ document.addEventListener('click', async e => {
 
     case 'cat': openCat(ds.id); break;
     case 'recon': openRecon(); break;
+    case 'refmail': {
+      const to = ($('#refmail') || {}).value ? $('#refmail').value.trim() : '';
+      if (to && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { toast('Sprawdź adres e-mail'); return; }
+      location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(refSubject)}&body=${encodeURIComponent(refText())}`;
+      break;
+    }
+    case 'refshare': {
+      if (navigator.share) { try { await navigator.share({title:refSubject, text:refText()}); } catch (e) {} }
+      else { try { await navigator.clipboard.writeText(refText()); toast('Skopiowano wiadomość – wklej ją w komunikatorze'); } catch (e) { toast('Nie udało się udostępnić'); } }
+      break;
+    }
+    case 'refcopy': try { await navigator.clipboard.writeText(appUrl()); toast('Link skopiowany'); } catch (e) { toast(appUrl()); } break;
     case 'swdel': { swClose(); const t = S.tx.find(x => x.id === ds.id); if (t) await deleteTxFlow(t); break; }
     case 'swlim': { swClose(); await deleteLimitFlow(ds.id); break; }
     case 'sworph': { swClose(); await fixOrphan(ds.id); break; }
