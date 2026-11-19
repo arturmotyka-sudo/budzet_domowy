@@ -1,11 +1,7 @@
 {
-  "version": "4.0",
+  "version": "4.1",
   "date": "2026-11-19",
   "changes": [
-    "Usuwanie z ekranu Budżet: przesuń pozycję w lewo → 🗑 Usuń (też limity i usunięte kategorie)",
-    "Ikona 🗑 w okienku edycji",
-    "„Na kontach” zaraz pod bilansem",
-    "Naprawione porządkowanie usuniętych kategorii (stary plan bez operacji)",
-    "Usuwanie jednorazowej pozycji: opcja „tę i w kolejnych latach”, jeśli skopiowała się na przyszły rok"
+    "Wszystkie kwoty z odstępem tysięcy, np. 1 000,00 zł"
   ]
 }

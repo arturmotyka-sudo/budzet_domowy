@@ -227,7 +227,8 @@ const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'scri
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const NF = new Intl.NumberFormat('pl-PL', {style:'currency', currency:'PLN'});
-const zl = g => NF.format((g || 0) / 100);
+// zawsze z odstępem tysięcy: 1 000,00 zł (polski standard Intl pomija odstęp przy 4 cyfrach)
+const zl = g => { const v = Math.round(g || 0); const neg = v < 0; const a = Math.abs(v); const i = String(Math.floor(a / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0'); return (neg ? '-' : '') + i + ',' + String(a % 100).padStart(2, '0') + '\u00a0zł'; };
 const parseZl = s => { s = String(s ?? '').replace(/\s/g,'').replace(',', '.'); if (s === '') return 0; const v = Number(s); return isFinite(v) ? Math.round(v * 100) : NaN; };
 const toInput = g => g ? (g / 100).toFixed(2).replace('.', ',') : '';
 const uid = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
@@ -342,7 +343,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };

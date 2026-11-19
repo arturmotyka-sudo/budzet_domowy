@@ -1,6 +1,6 @@
 # Budżet domowy – aplikacja na telefon
 
-**Wersja 4.0** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
+**Wersja 4.1** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -68,6 +68,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **4.1** – wszystkie kwoty z odstępem tysięcy (1 000,00 zł).
 - **4.0** – usuwanie przesunięciem w lewo na ekranie Budżet, 🗑 w edycji, „Na kontach” pod bilansem, naprawa porządkowania usuniętych kategorii.
 - **3.9** – nowy układ: Wpływy · Płatności (znane kwoty) · Wydatki z limitem; bez dublowania kategorii.
 - **3.8** – historia wg kolejności dodania (najnowsze na górze) i wyszukiwarka; osobne listy spodziewanych wpływów i zaplanowanych wydatków; bez dublowania kategorii; rozliczenie „skąd te kwoty”; usuwanie kategorii z przeniesieniem lub usunięciem operacji.
