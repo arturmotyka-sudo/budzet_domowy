@@ -1,6 +1,6 @@
 # Budżet domowy – aplikacja na telefon
 
-**Wersja 3.7** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
+**Wersja 3.8** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -53,6 +53,8 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 - **Korekty** – zmiany planu i powtarzających się pozycji: tylko ten miesiąc, tu i co rok w tym miesiącu, albo ten i wszystkie kolejne.
 - **Ikony kategorii** dobierane automatycznie po nazwie (słownik ~60 ikon), z możliwością zmiany; nową kategorię dodasz też prosto z okienka wydatku.
 - **Raport** – jeden plik HTML do wysłania mailem: na komputerze podgląd całego budżetu, na telefonie kopia zapasowa (**Wczytaj z pliku**).
+- **Historia** – najnowsze dodane/edytowane na górze; wyszukiwarka po wszystkich miesiącach.
+- **Rozliczenie** – stuknij kartę bilansu, żeby zobaczyć, skąd biorą się kwoty.
 - **Excel** – podsumowanie miesiąca i lista operacji.
 - **Czyszczenie miesiąca** z potwierdzeniem PIN-em.
 - **Motyw** jasny / ciemny – przycisk w prawym górnym rogu.
@@ -64,6 +66,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **3.8** – historia wg kolejności dodania (najnowsze na górze) i wyszukiwarka; osobne listy spodziewanych wpływów i zaplanowanych wydatków; bez dublowania kategorii; rozliczenie „skąd te kwoty”; usuwanie kategorii z przeniesieniem lub usunięciem operacji.
 - **3.7** – plan automatyczny: kategoria bez wpisanego planu ma plan równy sumie swoich pozycji.
 - **3.6** – czytelny opis kategorii bez planu i „ponad plan o …”; przycisk „Ustaw plan = wydane + zaplanowane”.
 - **3.5** – dodawanie nowej kategorii prosto z okienka wydatku.

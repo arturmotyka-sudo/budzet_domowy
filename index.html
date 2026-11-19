@@ -107,6 +107,7 @@ input.amt{font-size:30px;font-weight:700;text-align:center;padding:12px;font-var
 .dlgwrap.open{display:flex}
 .dlg{background:var(--card);border-radius:18px;padding:18px;max-width:380px;width:100%}
 .dlg p{margin:0 0 6px}
+.dlg{max-height:85vh;overflow:auto}
 .toast{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
 textarea{width:100%;height:160px;font:12px/1.3 ui-monospace,monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px}
@@ -132,6 +133,7 @@ nav.tabs button.upd::after{content:'';position:absolute;top:6px;left:calc(50% + 
 .plrow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
 .plrow:last-child{border-bottom:0}
 .plrow .tx{border-bottom:0;flex:1;min-width:0}
+.plrow .cname{white-space:normal;overflow:visible}
 .paybtn{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:13px;white-space:nowrap;flex:none}
 .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-top:14px;background:var(--bg);width:100%;text-align:left}
 .toggle .sub{margin-top:2px}
@@ -333,7 +335,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -436,7 +438,7 @@ function ruleApplies(r, m) {
   return false;
 }
 function txFromRule(r, m) {
-  const t = {id:uid(), m, d:clampDay(m, r.day), type:r.type, amount:r.amount, wallet:r.wallet, note:r.note || '', planned:true, ts:Date.now()};
+  const t = {id:uid(), m, d:clampDay(m, r.day), type:r.type, amount:r.amount, wallet:r.wallet, note:r.note || '', planned:true, ts:Date.now(), gen:true};
   if (r.freq !== 'once') t.rule = r.id;
   if (r.type === 'wydatek') t.cat = r.cat;
   if (r.type === 'przelew') t.to = r.to;
@@ -488,7 +490,7 @@ async function ensureAhead(silent) {
         for (const t of lyTx) {
           if (t.rule || !(t.type === 'wplyw' || t.planned || t.wasPlanned)) continue;
           const c = clone(t); c.id = uid(); c.m = m; c.d = clampDay(m, Number(t.d.slice(8))); c.planned = true; c.ts = Date.now();
-          delete c.wasPlanned; delete c.override;
+          delete c.wasPlanned; delete c.override; delete c.mt; c.gen = true;
           await store.saveTx(c);
         }
         made++;
@@ -662,25 +664,30 @@ function budgetHtml() {
   const msg = c.toAssign === 0 ? '✓ Bilans na zero – każda złotówka ma przydział'
             : c.toAssign > 0 ? 'Do rozdysponowania pozostało'
             : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
-  let h = `<div class="card hero ${cls}"><div class="k">Pozostało do rozdysponowania</div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}
+  let h = `<div class="card hero ${cls}" data-act="recon" style="cursor:pointer"><div class="k" style="display:flex;justify-content:space-between">Pozostało do rozdysponowania<span class="sub" style="font-weight:400">ⓘ skąd?</span></div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}
   <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent - c.plannedOut)}</b></div><div>Zostało<b class="${c.leftTotal < 0 ? 'neg' : ''}">${zl(c.leftTotal)}</b></div></div>${c.plannedOut ? `<div class="sub neg" style="margin-top:8px">🕒 Zaplanowane (do zapłaty): <b>${zl(c.plannedOut)}</b></div>` : ''}${carryLine()}</div>`;
   const planned = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
-  if (planned.length) {
-    h += `<h3>🕒 Zaplanowane<span class="neg">${zl(c.plannedOut)}</span></h3><div class="card list">`;
-    for (const t of planned) h += `<div class="plrow">${txRow(t, true, true)}${S.readOnly ? '' : `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>`}</div>`;
-    h += `</div>`;
-  }
+  const plRow = t => `<div class="plrow">${txRow(t, true, true)}${S.readOnly ? '' : `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>`}</div>`;
+  const pIn = planned.filter(t => t.type === 'wplyw'), pOut = planned.filter(t => t.type !== 'wplyw');
+  if (pIn.length) h += `<h3>🕒 Spodziewane wpływy<span class="pos">+${zl(pIn.reduce((x, t) => x + t.amount, 0))}</span></h3><div class="card list">${pIn.map(plRow).join('')}</div>`;
+  if (pOut.length) h += `<h3>🕒 Zaplanowane wydatki<span class="neg">−${zl(pOut.filter(t => t.type === 'wydatek').reduce((x, t) => x + t.amount, 0))}</span></h3><div class="card list">${pOut.map(plRow).join('')}</div>`;
   h += `<h3>Na kontach <span>${zl(c.actualTotal)}</span></h3><div class="wallets">`;
   for (const w of walletList(c)) { const x = c.W[w.id]; h += `<button class="wallet" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b>${zl(x.actual)}</b>${x.bal !== x.actual ? `<span class="sub">po zaplanowanych: ${zl(x.bal)}</span>` : ''}</button>`; }
   h += `</div>`;
+  // kategoria bez limitu, której pozycje są tylko zaplanowane, jest już w „Zaplanowane wydatki” – nie dublujemy; puste chowamy
+  const hiddenWhy = cc => (!cc.manual && cc.spent > 0 && cc.spent === cc.planned) ? 'dup' : null;
+  let hidden = 0;
   for (const [g, label] of GROUPS) {
     const cats = st.categories.filter(x => (x.group || 'zmienne') === g);
-    if (!cats.length) continue;
-    const gl = cats.reduce((s, x) => s + c.C[x.id].plan - c.C[x.id].spent, 0);
-    h += `<h3>${label}<span>zostało ${zl(gl)}</span></h3><div class="card list">${cats.map(x => catRow(x, c.C[x.id])).join('')}</div>`;
+    const vis = S.showAllCats ? cats : cats.filter(x => !hiddenWhy(c.C[x.id]));
+    hidden += cats.length - vis.length;
+    if (!vis.length) continue;
+    const gl = vis.reduce((s, x) => s + c.C[x.id].plan - c.C[x.id].spent, 0);
+    h += `<h3>${label}<span>zostało ${zl(gl)}</span></h3><div class="card list">${vis.map(x => catRow(x, c.C[x.id])).join('')}</div>`;
   }
+  if (hidden || S.showAllCats) h += `<button class="chip" style="margin:12px auto 0;display:block" data-act="togglecats">${S.showAllCats ? 'Ukryj kategorie widoczne w „Zaplanowane wydatki”' : `Pokaż też kategorie z samymi zaplanowanymi (${hidden})`}</button>`;
   const orph = Object.entries(c.C).filter(([, v]) => v.orphan && (v.plan || v.spent));
-  if (orph.length) h += `<h3>Usunięte kategorie</h3><div class="card list">${orph.map(([id, v]) => catRow({id, name:'(usunięta kategoria)', emoji:'❔'}, v)).join('')}</div>`;
+  if (orph.length) h += `<h3>Operacje z usuniętych kategorii</h3><div class="card list">${orph.map(([id, v]) => catRow({id, name:'(usunięta kategoria) – stuknij, by uporządkować', emoji:'❔'}, v)).join('')}</div>`;
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
   return h;
 }
@@ -720,31 +727,63 @@ function txInfo(t) {
   const c = catById(t.cat);
   return {emo:c?.emoji || '❔', title:catName(t.cat), sub:walletName(t.wallet), amt:t.planned ? `<span class="neg">−${zl(t.amount)}</span>` : `−${zl(t.amount)}`};
 }
-function txRow(t, withDate, inPlannedList) {
+function txRow(t, withDate, inPlannedList, extra) {
   const i = txInfo(t);
   const r = t.rule && S.rules[t.rule];
   let tags = '';
   if (t.planned && !inPlannedList) tags += `<span class="tag${t.type === 'wplyw' ? ' g' : ''}" style="margin:0 6px 0 0">🕒 ${t.type === 'wplyw' ? 'spodziewany' : 'zaplanowana'}</span>`;
   if (r) tags += `<span class="tag n" style="margin:0 6px 0 0">🔁 ${freqLabel(r)}</span>`;
   const sub = (withDate ? esc(shortDay(t.d)) + ' · ' : '') + esc(i.sub) + (t.note ? ' · ' + esc(t.note) : '');
-  return `<button class="tx" data-act="edittx" data-id="${esc(t.id)}"><span class="emo">${esc(i.emo)}</span><span class="cbody"><span class="cname" style="display:block">${esc(i.title)}</span><span class="sub">${tags}${sub}</span></span><span class="amtv">${i.amt}</span></button>`;
+  return `<button class="tx" data-act="edittx" data-id="${esc(t.id)}"><span class="emo">${esc(i.emo)}</span><span class="cbody"><span class="cname" style="display:block">${esc(i.title)}</span><span class="sub">${tags}${sub}</span>${extra ? `<span class="sub" style="opacity:.8">${extra}</span>` : ''}</span><span class="amtv">${i.amt}</span></button>`;
+}
+const plural = (n, one, few, many) => n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? few : many;
+const timeLabel = ms => new Date(ms).toLocaleString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+const entryTime = t => t.mt || t.ts || 0;
+function entryDay(ms) {
+  const d = new Date(ms), t = new Date(); const y = new Date(); y.setDate(t.getDate() - 1);
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  return same(d, t) ? 'Dziś' : same(d, y) ? 'Wczoraj' : cap(d.toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'}));
 }
 const sortTx = list => list.slice().sort((a, b) => (b.d || '').localeCompare(a.d || '') || (b.ts || 0) - (a.ts || 0));
 
 function historyHtml() {
   const c = calc();
-  const list = sortTx(S.tx);
-  let h = `<div class="card"><div class="kv"><span>Wpływy w miesiącu</span><b class="pos">+${zl(c.inc)}</b></div><div class="kv"><span>Wydatki zapłacone</span><b>−${zl(c.spent - c.plannedOut)}</b></div>
-    ${c.plannedOut ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">−${zl(c.plannedOut)}</b></div>` : ''}
+  const incPlan = S.tx.filter(t => t.type === 'wplyw' && t.planned).reduce((x, t) => x + t.amount, 0);
+  let h = `<div class="card"><div class="kv"><span>Wpływy otrzymane</span><b class="pos">+${zl(c.inc - incPlan)}</b></div>
+    ${incPlan ? `<div class="kv"><span>🕒 Wpływy spodziewane</span><b class="pos">+${zl(incPlan)}</b></div>` : ''}
+    <div class="kv"><span>Wydatki zapłacone</span><b>−${zl(c.spent - c.plannedOut)}</b></div>
+    ${c.plannedOut ? `<div class="kv"><span>🕒 Wydatki zaplanowane</span><b class="neg">−${zl(c.plannedOut)}</b></div>` : ''}
     ${REPORT ? '' : `<div class="row2"><button class="btn sec" data-act="report">📤 Wyślij raport</button><button class="btn sec" data-act="xlsx">📊 Excel</button></div>`}</div>`;
-  const clearBtn = REPORT ? '' : `<button class="btn danger" style="margin-top:28px" data-act="clearmonth">🗑️ Wyczyść miesiąc: ${esc(monthLabel(S.month))}</button>`;
-  if (!list.length) return h + `<div class="empty">Brak operacji w tym miesiącu.${REPORT ? '' : '<br>Dodaj pierwszą przyciskiem +'}</div>` + clearBtn;
-  let day = null;
-  for (const t of list) {
-    if (t.d !== day) { if (day !== null) h += `</div>`; day = t.d; h += `<div class="dhead">${esc(dayLabel(t.d))}</div><div class="card list">`; }
-    h += txRow(t);
+  h += `<input id="histq" type="search" placeholder="🔍 Szukaj we wszystkich miesiącach: prąd, 326, Orlen…" value="${esc(S.histQ || '')}" style="margin-top:12px">`;
+  h += `<div id="histres">${historyList()}</div>`;
+  if (!REPORT) h += `<button class="btn danger" style="margin-top:28px" data-act="clearmonth">🗑️ Wyczyść miesiąc: ${esc(monthLabel(S.month))}</button>`;
+  return h;
+}
+function txMatches(t, q) {
+  const hay = [t.note, t.type === 'wydatek' ? catName(t.cat) : t.type === 'wplyw' ? 'wpływ' : 'przelew', walletName(t.wallet), t.to ? walletName(t.to) : '',
+    toInput(t.amount), (t.amount / 100).toFixed(2), String(Math.round(t.amount / 100)), monthLabel(t.m)].join(' ').toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w.replace('.', ',')) || hay.includes(w));
+}
+function historyList() {
+  const q = (S.histQ || '').trim();
+  if (q) {
+    const res = (store.allTx ? store.allTx() : S.tx).filter(t => txMatches(t, q)).sort((a, b) => entryTime(b) - entryTime(a)).slice(0, 150);
+    if (!res.length) return `<div class="empty">Nic nie znaleziono dla „${esc(q)}”.</div>`;
+    return `<div class="dhead">Znaleziono: ${res.length}${res.length === 150 ? '+' : ''}</div><div class="card list">${res.map(t => txRow(t, true, false, esc(monthLabel(t.m)) + (entryTime(t) ? ((t.mt && t.ts && t.mt - t.ts > 60000) ? ' · edytowano ' : ' · dodano ') + esc(timeLabel(entryTime(t))) : ''))).join('')}</div>`;
   }
-  return h + `</div>` + clearBtn;
+  const mine = S.tx.filter(t => !t.gen || t.mt).sort((a, b) => entryTime(b) - entryTime(a));
+  const auto = S.tx.filter(t => t.gen && !t.mt).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
+  if (!mine.length && !auto.length) return `<div class="empty">Brak operacji w tym miesiącu.${REPORT ? '' : '<br>Dodaj pierwszą przyciskiem +'}</div>`;
+  let h = '', day = null;
+  for (const t of mine) {
+    const dl = entryDay(entryTime(t));
+    if (dl !== day) { if (day !== null) h += `</div>`; day = dl; h += `<div class="dhead">${esc(dl)}</div><div class="card list">`; }
+    const when = new Date(entryTime(t)).toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
+    h += txRow(t, true, false, (t.mt && t.ts && t.mt - t.ts > 60000 ? 'edytowano ' : 'dodano ') + when);
+  }
+  if (day !== null) h += `</div>`;
+  if (auto.length) h += `<div class="dhead">Dodane automatycznie (powtarzające się) · ${auto.length}</div><div class="card list">${auto.map(t => txRow(t, true)).join('')}</div>`;
+  return h;
 }
 
 function settingsHtml() {
@@ -844,8 +883,15 @@ function helpHtml() {
       <li>Pozycje dodają się od razu do wszystkich utworzonych miesięcy, a do dalszych – gdy się utworzą (z kwotą z tego samego miesiąca sprzed roku, jeśli była tam poprawiona). Listę wszystkich powtórzeń (i ich usuwanie) znajdziesz w <b>Ustawienia → Płatności cykliczne</b>.</li>
       <li>Przy zmianie powtarzanej operacji wybierasz: <b>tylko w tym miesiącu</b>, <b>tu i co rok w tym miesiącu</b> (np. grudniowa pensja z wyższym podatkiem) albo <b>w tym i wszystkich kolejnych</b>. Przy usuwaniu – tylko tę albo też przyszłe.</li>
       <li>Powtarzaj: <b>Nie</b> w istniejącej pozycji wyłącza powtarzanie i usuwa jej zaplanowane kopie z przyszłych miesięcy.</li></ul>`)
-  + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. Ikonę zmienisz też prosto z ekranu Budżet: stuknij kategorię, a potem jej ikonę w nagłówku. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>`)
+  + sec('🏷️ Kategorie i ikony', `<p><b>Ustawienia → Kategorie</b> → <b>+ Dodaj kategorię</b> i wpisz nazwę – ikona dobierze się sama (np. Paliwo ⛽, Podatek 🧾, Przegląd auta 🔧, Ubezpieczenie 🛡️, Prąd 💡). Stuknij ikonę, żeby wybrać inną z listy albo wpisać dowolne emoji. Ikonę zmienisz też prosto z ekranu Budżet: stuknij kategorię, a potem jej ikonę w nagłówku. <b>🪄 Dopasuj ikony do nazw</b> poprawia ikony we wszystkich kategoriach. Na koniec <b>Zapisz zmiany</b>.</p>
+      <p><b>Usuwanie kategorii</b> (✕ w Ustawieniach): jeśli ma operacje, wybierasz – <b>przenieś je do innej kategorii</b> albo <b>usuń razem z operacjami</b>. Stare „usunięte kategorie” uporządkujesz, stukając je na ekranie Budżet.</p>`)
   + sec('🔄 Przelew między kontami', `<p><b>+</b> → zakładka <b>Przelew</b> → z którego konta na które. Przelew zmienia tylko stan kont, nie rusza kategorii ani bilansu.</p>`)
+  + sec('🧾 Historia i wyszukiwanie', `<ul>
+      <li>W <b>Historii</b> na górze są operacje, które dodałeś lub poprawiłeś – <b>najnowsze na górze</b>, pogrupowane: Dziś, Wczoraj…, z godziną dodania/edycji.</li>
+      <li>Na dole – pozycje <b>dodane automatycznie</b> (powtarzające się).</li>
+      <li><b>🔍 Szukaj</b> przeszukuje wszystkie miesiące: wpisz nazwę, kategorię, kwotę albo notatkę (np. „prąd”, „326”, „Orlen”). Stuknięcie wyniku otwiera go w jego miesiącu.</li></ul>`)
+  + sec('🧮 Skąd biorą się kwoty', `<p>Stuknij kartę <b>Pozostało do rozdysponowania</b> – zobaczysz rozliczenie: start + wpływy (otrzymane i spodziewane) − plan = pozostało, oraz osobno: ile jest naprawdę na kontach i ile będzie po zaplanowanych.</p>
+      <p>Na ekranie Budżet <b>spodziewane wpływy</b> i <b>zaplanowane wydatki</b> są w osobnych listach z własnymi sumami. Kategoria bez limitu, której pozycje są tylko zaplanowane (np. podatek), nie jest powtarzana na liście kategorii, żeby nie dublować linii – pojawi się tam po zapłaceniu jako „✓”. Przycisk pod listą pokazuje ją mimo to. Nieużywane kategorie najlepiej usunąć w Ustawieniach.</p>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
@@ -927,6 +973,7 @@ function openCat(id) {
     <div class="card" style="margin-top:16px">`}
     <div class="kv"><span>Wydane (zapłacone)</span><b>${zl(cc.spent - (cc.planned || 0))}</b></div>${cc.planned ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
     ${S.readOnly || !catById(id) ? '' : `<button class="btn sec" data-act="addtx" data-cat="${esc(id)}">+ Dodaj wydatek</button>`}
+    ${!S.readOnly && !catById(id) ? `<button class="btn" data-act="orphfix" data-id="${esc(id)}">🧹 Przenieś albo usuń te operacje</button>` : ''}
     ${list.length ? `<div class="dhead">Operacje w tym miesiącu</div><div class="card list">${list.map(t => txRow(t, true)).join('')}</div>` : ''}`,
     {kind:'cat', id, basePlan:cc.plan, baseAssign:c.toAssign, spent:cc.spent, auto:!!cc.auto});
   updatePlanHint();
@@ -1034,12 +1081,66 @@ function validateDraft() {
 }
 function recFromDraft() {
   const t = S.txDraft;
-  const rec = {id:t.id || uid(), m:S.month, d:t.d, type:t.type, amount:parseZl(t.amountStr), wallet:t.wallet, note:(t.note || '').trim(), ts:t.ts || Date.now()};
+  const rec = {id:t.id || uid(), m:S.month, d:t.d, type:t.type, amount:parseZl(t.amountStr), wallet:t.wallet, note:(t.note || '').trim(), ts:t.ts || Date.now(), mt:Date.now()};
   if (t.type === 'wydatek') rec.cat = t.cat;
   if (t.type === 'przelew') rec.to = t.to;
   if (t.planned) rec.planned = true;
   if (t.wasPlanned && !t.planned) rec.wasPlanned = true;
   return rec;
+}
+
+/* rozliczenie: skąd biorą się kwoty */
+function openRecon() {
+  const c = calc(), mi = monthInfo(S.month);
+  const incPlan = S.tx.filter(t => t.type === 'wplyw' && t.planned).reduce((x, t) => x + t.amount, 0);
+  const manual = Object.values(c.C).reduce((x, k) => x + (k.auto ? 0 : k.plan), 0), auto = Object.values(c.C).reduce((x, k) => x + (k.auto ? k.plan : 0), 0);
+  const paid = c.spent - c.plannedOut;
+  const row = (l, v, cls, b) => `<div class="kv"><span>${l}</span><b class="${cls || ''}">${b ? '' : ''}${v}</b></div>`;
+  openSheet(`${head('Skąd te kwoty – ' + esc(monthLabel(S.month)))}
+    <label class="f">Pozostało do rozdysponowania</label><div class="card">
+      ${row(mi && mi.carry ? `Na start (przeniesione z: ${esc(monthLabel(mi.prev))})` : 'Na start miesiąca', zl(c.startTotal))}
+      ${row('+ Wpływy otrzymane', '+' + zl(c.inc - incPlan), 'pos')}
+      ${incPlan ? row('+ 🕒 Wpływy spodziewane', '+' + zl(incPlan), 'pos') : ''}
+      ${row('= Środki', zl(c.funds))}
+      ${manual ? row('− Plan kategorii z limitem', '−' + zl(manual)) : ''}
+      ${auto ? row('− Kategorie bez limitu (suma pozycji)', '−' + zl(auto)) : ''}
+      ${row('<b>= Pozostało do rozdysponowania</b>', zl(c.toAssign), c.toAssign < 0 ? 'neg' : 'pos')}</div>
+    <label class="f">Na kontach (prawdziwe pieniądze)</label><div class="card">
+      ${row('Na start', zl(c.startTotal))}
+      ${row('+ Wpływy otrzymane', '+' + zl(c.inc - incPlan), 'pos')}
+      ${row('− Wydatki zapłacone', '−' + zl(paid))}
+      ${row('<b>= Na kontach teraz</b>', zl(c.actualTotal))}
+      ${incPlan || c.plannedOut ? row('+ 🕒 spodziewane − 🕒 zaplanowane', (incPlan - c.plannedOut >= 0 ? '+' : '−') + zl(Math.abs(incPlan - c.plannedOut))) + row('<b>= Po zaplanowanych</b>', zl(c.balTotal)) : ''}</div>
+    <p class="sub">Zaplanowane wydatki są już w planie (rezerwują pieniądze), więc nie zmniejszają „Pozostało do rozdysponowania” drugi raz. Na koncie zmieniają stan dopiero po „✓”.</p>`, {kind:'recon'});
+}
+
+/* porządkowanie kategorii: przeniesienie albo usunięcie operacji */
+async function reassignCategory(fromId, toId) {
+  await store.batch(async () => {
+    for (const t of store.allTx().filter(x => x.cat === fromId)) { if (toId) await store.saveTx(Object.assign({}, t, {cat:toId})); else await store.deleteTx(t.id); }
+    for (const r of Object.values(S.rules).filter(x => x.cat === fromId)) { if (toId) await store.saveRule(Object.assign({}, r, {cat:toId})); else await store.deleteRule(r.id); }
+    for (const m of monthKeys()) {
+      const md = S.data.months[m]; if (!md.plan || md.plan[fromId] === undefined) continue;
+      const n = clone(md); const v = n.plan[fromId]; delete n.plan[fromId];
+      if (toId && v) n.plan[toId] = (n.plan[toId] || 0) + v;
+      await store.saveMonth(m, n);
+    }
+    if (S.settings.categories.some(x => x.id === fromId)) { const st = clone(S.settings); st.categories = st.categories.filter(x => x.id !== fromId); await store.saveSettings(st); }
+  });
+  if (S.draft) S.draft.categories = S.draft.categories.filter(x => x.id !== fromId);
+}
+async function categoryCleanup(id, name) {
+  const used = store.allTx().filter(t => t.cat === id).length, rules = Object.values(S.rules).filter(r => r.cat === id).length;
+  if (!used && !rules) return 'none';
+  const ch = await choose(`„${name}” ma ${used} ${plural(used, 'operację', 'operacje', 'operacji')}${rules ? ` i ${rules} ${plural(rules, 'powtarzanie', 'powtarzania', 'powtarzań')}` : ''} (we wszystkich miesiącach). Co z nimi zrobić?`,
+    [{label:'Przenieś do innej kategorii'}, {label:`Usuń razem z operacjami (${used})`, cls:'danger'}]);
+  if (ch < 0) return 'cancel';
+  if (ch === 1) { await reassignCategory(id, null); return 'deleted'; }
+  const others = S.settings.categories.filter(x => x.id !== id);
+  if (!others.length) { toast('Brak innej kategorii'); return 'cancel'; }
+  const t = await choose(`Przenieś operacje z „${name}” do:`, others.map(x => ({label:(x.emoji || '') + ' ' + x.name})));
+  if (t < 0) return 'cancel';
+  await reassignCategory(id, others[t].id); return 'moved:' + others[t].name;
 }
 
 /* icon picker */
@@ -1262,7 +1363,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- actions ---------- */
 function setMonth(k) { if (k === S.month) return; S.month = k; subMonth(); render(); }
-const RO_OK = ['close','tab','mprev','mnext','mtoday','cat','wallet','edittx','theme'];
+const RO_OK = ['close','tab','mprev','mnext','mtoday','cat','wallet','edittx','theme','recon','togglecats'];
 
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]'); if (!el || L.mode) return;
@@ -1335,6 +1436,9 @@ document.addEventListener('click', async e => {
     }
 
     case 'cat': openCat(ds.id); break;
+    case 'recon': openRecon(); break;
+    case 'togglecats': S.showAllCats = !S.showAllCats; render(); break;
+    case 'orphfix': { const id = ds.id; closeSheet(); const r = await categoryCleanup(id, 'usunięta kategoria'); if (r !== 'cancel') toast(r.startsWith('moved:') ? `Przeniesiono do „${r.slice(6)}”` : 'Uporządkowano'); break; }
     case 'planmatch': $('#plan').value = toInput(Number(ds.v)); updatePlanHint(); break;
     case 'planfill': { const s = S.sheet; $('#plan').value = toInput(Math.max(s.spent || 0, s.basePlan + s.baseAssign)); updatePlanHint(); break; }
     case 'plansave': {
@@ -1369,12 +1473,16 @@ document.addEventListener('click', async e => {
       break;
     }
 
-    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; n.wasPlanned = true; await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
+    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; n.wasPlanned = true; n.mt = Date.now(); await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
 
     case 'addtx':
       if (!S.settings.wallets.length) { toast('Najpierw dodaj konto w Ustawieniach'); return; }
       openTx({cat:ds.cat, type:ds.type, wallet:ds.wallet}); break;
-    case 'edittx': { const t = S.tx.find(x => x.id === ds.id); if (t && !S.readOnly) openTx({edit:t}); break; }
+    case 'edittx': {
+      let t = S.tx.find(x => x.id === ds.id);
+      if (!t && store.allTx) { t = store.allTx().find(x => x.id === ds.id); if (t) { setMonth(t.m); t = S.tx.find(x => x.id === ds.id); } }
+      if (t && !S.readOnly) openTx({edit:t}); break;
+    }
     case 'ttype': syncTxInputs(); S.txDraft.type = ds.v;
       if (ds.v === 'przelew' && (!S.txDraft.to || S.txDraft.to === S.txDraft.wallet)) S.txDraft.to = S.settings.wallets.find(w => w.id !== S.txDraft.wallet)?.id || null;
       renderTxSheet(false); break;
@@ -1536,8 +1644,16 @@ document.addEventListener('click', async e => {
     }
     case 'cdel': {
       const c = S.draft.categories[+ds.i];
-      if (!(await ask(`Usunąć kategorię „${c.name || 'bez nazwy'}”? Operacje zostaną w historii.`))) return;
-      S.draft.categories.splice(+ds.i, 1); S.draftDirty = true; renderMain(true); break;
+      const saved = S.settings.categories.some(x => x.id === c.id);
+      if (!saved) { S.draft.categories.splice(+ds.i, 1); renderMain(true); break; }
+      const r = await categoryCleanup(c.id, c.name || 'bez nazwy');
+      if (r === 'cancel') return;
+      if (r === 'none') {
+        if (!(await ask(`Usunąć kategorię „${c.name || 'bez nazwy'}”?`))) return;
+        await write(reassignCategory(c.id, null));
+      }
+      toast(r.startsWith('moved:') ? `Przeniesiono do „${r.slice(6)}” i usunięto kategorię` : 'Kategoria usunięta');
+      renderMain(true); break;
     }
     case 'cup': case 'cdown': {
       const i = +ds.i, j = a === 'cup' ? i - 1 : i + 1, arr = S.draft.categories;
@@ -1558,6 +1674,7 @@ $('#importFile').addEventListener('change', e => { const f = e.target.files && e
 document.addEventListener('input', e => {
   const el = e.target;
   if (el.id === 'plan') { updatePlanHint(); return; }
+  if (el.id === 'histq') { S.histQ = el.value; const r = $('#histres'); if (r) r.innerHTML = historyList(); return; }
   if (el.id === 'ncname') { if (S.txDraft && S.txDraft.newCat) S.txDraft.newCat.name = el.value; const i = $('#ncicon'); if (i) i.textContent = guessIcon(el.value) || '🏷️'; return; }
   const k = el.dataset && el.dataset.in; if (!k || !S.draft) return;
   const i = +el.dataset.i;

@@ -1,7 +1,11 @@
 {
-  "version": "3.7",
+  "version": "3.8",
   "date": "2026-11-19",
   "changes": [
-    "Plan automatyczny: kategoria bez wpisanego planu ma plan = suma jej pozycji (koniec z „brak planu” przy zaplanowanych płatnościach)"
+    "Historia: najnowsze dodane/edytowane na górze, z godziną; wyszukiwarka we wszystkich miesiącach",
+    "Osobne listy: spodziewane wpływy i zaplanowane wydatki",
+    "Bez dublowania: kategorie tylko z zaplanowanymi pozycjami są ukryte na liście kategorii",
+    "Rozliczenie „skąd te kwoty” po stuknięciu karty bilansu",
+    "Usuwanie kategorii: przenieś operacje albo usuń razem z nimi; porządkowanie starych usuniętych"
   ]
 }
