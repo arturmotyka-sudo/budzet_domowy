@@ -1,9 +1,7 @@
 {
-  "version": "4.4",
+  "version": "4.5",
   "date": "2026-11-19",
   "changes": [
-    "Przesunięcie w lewo usuwa od razu, bez pytań – z przyciskiem „Cofnij”",
-    "Przesunięcie zaplanowanej pozycji w prawo: przeniesienie na następny miesiąc, za 2–3 miesiące albo za rok",
-    "Nowa ikona aplikacji: złota moneta"
+    "Przypomnienie o wysłaniu raportu (kopii) już po 7 dniach"
   ]
 }

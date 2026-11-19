@@ -65,11 +65,12 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Ważne
 
-- Dane są tylko w telefonie. **Odinstalowanie aplikacji lub wyczyszczenie danych Chrome może je usunąć** – wysyłaj raport regularnie (aplikacja przypomina po 14 dniach).
+- Dane są tylko w telefonie. **Odinstalowanie aplikacji lub wyczyszczenie danych Chrome może je usunąć** – wysyłaj raport regularnie (aplikacja przypomina po 7 dniach).
 - PIN można wyłączyć i włączyć w Ustawieniach. PIN chroni przed podejrzeniem przez osobę z telefonem w ręku, ale nie szyfruje danych. Zapomniany PIN = usunięcie danych z telefonu i wczytanie ostatniego raportu.
 
 ## Historia wersji
 
+- **4.5** – przypomnienie o kopii (raporcie) po 7 dniach zamiast 14.
 - **4.4** – przesunięcie w lewo usuwa od razu (z „Cofnij”), przesunięcie zaplanowanej pozycji w prawo przenosi ją na kolejny miesiąc / za 2–3 miesiące / za rok; nowa ikona – złota moneta z symbolem $.
 - **4.3** – polecanie aplikacji: link z instrukcją mailem, komunikatorem lub do skopiowania.
 - **4.2** – kolory stanu konta (czerwony / pomarańczowy / zielony) z progami w Ustawieniach.

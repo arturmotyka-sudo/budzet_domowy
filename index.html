@@ -354,7 +354,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -641,7 +641,7 @@ function backupBanner() {
   if (REPORT || !store.hasData()) return '';
   const last = lsGet('budzet-lastExport');
   const days = last ? Math.floor((Date.now() - Number(last)) / 864e5) : null;
-  if (days !== null && days < 14) return '';
+  if (days !== null && days < 7) return '';
   return `<div class="banner info">💾 ${days === null ? 'Nie masz jeszcze kopii danych.' : `Ostatnia kopia ${days} dni temu.`}<button data-act="report">Wyślij raport</button></div>`;
 }
 
@@ -950,7 +950,7 @@ function helpHtml() {
       <li>Na komputerze otwórz załącznik dwuklikiem – w przeglądarce widać cały budżet (wszystkie miesiące) w trybie podglądu.</li>
       <li>Ten sam plik to kopia: na nowym telefonie wybierz <b>Wczytaj z pliku</b>.</li>
       <li><b>📊 Excel</b> – plik z podsumowaniem miesiąca i listą operacji (zaplanowane na czerwono).</li>
-      <li>Dane są tylko w telefonie – wysyłaj raport regularnie (aplikacja przypomni po 14 dniach).</li></ul>`)
+      <li>Dane są tylko w telefonie – wysyłaj raport regularnie (aplikacja przypomni po 7 dniach).</li></ul>`)
   + sec('📨 Polecanie aplikacji', `<p><b>Ustawienia → Poleć aplikację</b>: wpisz adres e-mail i stuknij <b>✉️ Wyślij</b> (otworzy się poczta z gotową wiadomością: link + instrukcja instalacji), albo <b>📤 Udostępnij</b> przez WhatsApp/SMS, albo <b>🔗 Kopiuj link</b>. Odbiorca dostaje własną, pustą aplikację – Twoje dane nie są wysyłane.</p>`)
   + sec('🔒 PIN', `<ul>
       <li>Gdy PIN jest włączony, aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
