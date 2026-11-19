@@ -333,7 +333,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -542,6 +542,8 @@ function calcFor(st, md, txs) {
   }
   // bal = po zaplanowanych (do planowania), actual = rzeczywiście na koncie
   for (const w of Object.values(W)) { w.bal = w.start + w.inc - w.spent - w.tout + w.tin; w.actual = w.bal - w.pin + w.pout; }
+  // plan automatyczny: kategoria bez wpisanego planu dostaje plan = suma jej pozycji (zapłacone + zaplanowane)
+  for (const c of Object.values(C)) { c.manual = c.plan; if (!c.plan && c.spent > 0) { c.plan = c.spent; c.auto = true; } }
   const planTotal = Object.values(C).reduce((s, c) => s + c.plan, 0);
   const funds = startTotal + inc;
   return { W, C, funds, planTotal, spent, inc, startTotal, plannedOut, toAssign: funds - planTotal, leftTotal: planTotal - spent,
@@ -699,6 +701,11 @@ function catRow(x, cc) {
   const noPlan = REPORT ? 'brak planu' : 'brak planu – stuknij, by ustawić';
   const pl = cc.planned ? ` · <span class="neg">🕒 zaplanowane ${zl(cc.planned)}</span>` : '';
   const verb = x.group === 'oszczednosci' ? 'odłożone' : x.group === 'stale' ? 'zapłacone' : 'wydane';
+  if (cc.auto) {
+    if (cc.planned) { right = `<span class="neg">🕒 do zapłaty ${zl(cc.planned)}</span>`; sub = `plan z pozycji ${zl(cc.plan)} · ${verb} ${zl(real)}`; }
+    else { right = `<span class="pos">✓ ${zl(real)}</span>`; sub = `plan z pozycji · ${verb} ${zl(real)}`; }
+    return `<button class="cat" data-act="cat" data-id="${esc(x.id)}"><span class="emo">${esc(x.emoji || '•')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.name)}</span><span class="cleft">${right}</span></span><span class="bar"><i style="width:${pReal.toFixed(1)}%"></i><i class="pl" style="width:${pPlan.toFixed(1)}%"></i></span><span class="sub">${sub}</span></span></button>`;
+  }
   if (left < 0 && !cc.plan) { right = `<span class="neg">−${zl(-left)}</span>`; sub = REPORT ? 'brak planu' : `<span class="neg">brak planu – stuknij, by ustawić</span>${real ? ` · ${verb} ${zl(real)}` : ''}`; bc = 'bad'; }
   else if (left < 0) { right = `<span class="neg">−${zl(-left)}</span>`; sub = `ponad plan o ${zl(-left)} · ${verb} ${zl(real)} z ${zl(cc.plan)}`; bc = 'bad'; }
   else if (x.group === 'stale' && cc.plan > 0 && left === 0 && !cc.planned) { right = `<span class="pos">✓ opłacone</span>`; sub = `zapłacono ${zl(real)}`; }
@@ -785,7 +792,7 @@ function helpHtml() {
       <span class="neg"><b>−80,00 zł</b></span><span>zaplanowana płatność / zlecenie stałe (jeszcze niezapłacona)</span>
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
       <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek – liczy się do „Wydane”</span>
-      <span class="neg"><b>brak planu</b></span><span>w kategorii są wydatki, a plan wynosi 0 zł – stuknij kategorię i ustaw plan (przycisk „Ustaw plan = …”)</span>
+      <span><b>plan z pozycji</b></span><span>kategoria bez wpisanego limitu – plan to suma jej pozycji (np. podatek 26 + 272 = 298 zł)</span>
       <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
       <span style="color:var(--vivid)"><b>Bilans</b></span><span>zielony – kwota, która pozostała do rozdysponowania (przydziel ją do kategorii)</span>
       <span class="neg"><b>Bilans</b></span><span>czerwony – brakuje pieniędzy (zaplanowano więcej, niż macie, albo przeszedł minus z poprzedniego miesiąca)</span>
@@ -807,7 +814,8 @@ function helpHtml() {
       <li><b>Środki na start</b> przenoszą się same ze stanu kont z końca poprzedniego miesiąca. Zmień je tylko, jeśli stan w banku jest inny. W pierwszym miesiącu wpisujesz je ręcznie.</li>
       <li>Zaznacz <b>Skopiuj plan</b>, jeśli chcesz takie same kwoty jak w poprzednim miesiącu.</li>
       <li>Płatności cykliczne i przypomnienia dodadzą się same jako zaplanowane (czerwone).</li>
-      <li>Stuknij kategorię i wpisz <b>plan</b>. Przycisk <b>Wyrównaj bilans</b> wrzuca do tej kategorii całą resztę, tak żeby bilans wyszedł 0 zł.</li></ol>`)
+      <li>Stuknij kategorię i wpisz <b>plan</b> (limit) – np. Życie 2000 zł. Przycisk <b>Wyrównaj bilans</b> wrzuca do tej kategorii całą resztę, tak żeby bilans wyszedł 0 zł.</li>
+      <li>Kategorii z konkretnymi płatnościami (podatek, prąd, OC) nie musisz planować – bez wpisanego planu <b>plan liczy się automatycznie z pozycji</b> (zapłacone + zaplanowane).</li></ol>`)
   + sec('➖ Wydatek', `<ol>
       <li>Zielony przycisk <b>+</b> (prawy dolny róg).</li>
       <li>Wpisz kwotę, wybierz <b>kategorię</b> (obok nazwy widać, ile w niej zostało) i <b>z czyich pieniędzy</b>.</li>
@@ -911,22 +919,25 @@ function openCat(id) {
   openSheet(`<div class="shead"><h2>${S.readOnly || !catById(id) ? esc(x.emoji || '') : `<button class="ib emobtn" style="width:48px;margin-right:6px" data-act="catemo" data-id="${esc(id)}" aria-label="Zmień ikonę">${esc(x.emoji || '🏷️')}</button>`}${esc(x.name)}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>
     ${S.readOnly ? `<div class="card"><div class="kv"><span>Plan</span><b>${zl(cc.plan)}</b></div>` : `
     <label class="f">Plan na ${esc(monthLabel(S.month))}</label>
-    <input class="amt" id="plan" inputmode="decimal" placeholder="0,00" value="${toInput(cc.plan)}">
+    <input class="amt" id="plan" inputmode="decimal" placeholder="${cc.auto ? 'auto: ' + toInput(cc.plan) : '0,00'}" value="${cc.auto ? '' : toInput(cc.plan)}">
+    ${cc.auto ? `<span class="hint center">Plan liczy się automatycznie z pozycji (${zl(cc.plan)}). Wpisz kwotę tylko, jeśli chcesz stały limit.</span>` : ''}
     <span class="sub" id="planhint" style="text-align:center;margin-top:6px"></span>
-    ${cc.spent > cc.plan ? `<button class="btn sec" data-act="planmatch" data-v="${cc.spent}">Ustaw plan = ${zl(cc.spent)} (wydane + zaplanowane)</button>` : ''}
+    ${!cc.auto && cc.spent > cc.plan ? `<button class="btn sec" data-act="planmatch" data-v="${cc.spent}">Ustaw plan = ${zl(cc.spent)} (wydane + zaplanowane)</button>` : ''}
     <div class="row2"><button class="btn sec" data-act="planfill">Wyrównaj bilans</button><button class="btn" data-act="plansave">Zapisz plan</button></div>
     <div class="card" style="margin-top:16px">`}
     <div class="kv"><span>Wydane (zapłacone)</span><b>${zl(cc.spent - (cc.planned || 0))}</b></div>${cc.planned ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
     ${S.readOnly || !catById(id) ? '' : `<button class="btn sec" data-act="addtx" data-cat="${esc(id)}">+ Dodaj wydatek</button>`}
     ${list.length ? `<div class="dhead">Operacje w tym miesiącu</div><div class="card list">${list.map(t => txRow(t, true)).join('')}</div>` : ''}`,
-    {kind:'cat', id, basePlan:cc.plan, baseAssign:c.toAssign});
+    {kind:'cat', id, basePlan:cc.plan, baseAssign:c.toAssign, spent:cc.spent, auto:!!cc.auto});
   updatePlanHint();
 }
 function updatePlanHint() {
   const s = S.sheet, el = $('#planhint'); if (!el) return;
-  const v = parseZl($('#plan').value);
+  const raw = $('#plan').value.trim();
+  const v = parseZl(raw);
   if (isNaN(v)) { el.textContent = 'Niepoprawna kwota'; return; }
-  const after = s.baseAssign + s.basePlan - v;
+  const eff = (!raw || v === 0) ? (s.spent || 0) : v;   // pusty = plan automatyczny z pozycji
+  const after = s.baseAssign + s.basePlan - eff;
   el.innerHTML = `Do rozdysponowania po zmianie: <b class="${after === 0 ? 'pos' : after < 0 ? 'neg' : ''}">${zl(after)}</b>`;
 }
 
@@ -1325,12 +1336,12 @@ document.addEventListener('click', async e => {
 
     case 'cat': openCat(ds.id); break;
     case 'planmatch': $('#plan').value = toInput(Number(ds.v)); updatePlanHint(); break;
-    case 'planfill': { const s = S.sheet; $('#plan').value = toInput(Math.max(0, s.basePlan + s.baseAssign)); updatePlanHint(); break; }
+    case 'planfill': { const s = S.sheet; $('#plan').value = toInput(Math.max(s.spent || 0, s.basePlan + s.baseAssign)); updatePlanHint(); break; }
     case 'plansave': {
       const v = parseZl($('#plan').value); if (isNaN(v) || v < 0) { toast('Wpisz poprawną kwotę'); return; }
       const cid = S.sheet.id, m = S.month, fut = futureMonthsOf(m);
       let targets = [m];
-      if (fut.length && v !== S.sheet.basePlan) {
+      if (fut.length && v !== (S.sheet.auto ? 0 : S.sheet.basePlan)) {
         const futY = fut.filter(k => k.slice(5) === m.slice(5));
         const opts = [{label:`Tylko ${monthLabel(m)}`}];
         if (futY.length) opts.push({label:`Tu i co rok w ${MONTH_LOC[m.slice(5)]}`});

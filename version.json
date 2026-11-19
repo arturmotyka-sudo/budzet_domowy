@@ -1,8 +1,7 @@
 {
-  "version": "3.6",
+  "version": "3.7",
   "date": "2026-11-19",
   "changes": [
-    "Czytelniejszy opis kategorii bez planu („brak planu – stuknij, by ustawić”) i „ponad plan o …”",
-    "Przycisk „Ustaw plan = wydane + zaplanowane” w kategorii"
+    "Plan automatyczny: kategoria bez wpisanego planu ma plan = suma jej pozycji (koniec z „brak planu” przy zaplanowanych płatnościach)"
   ]
 }
