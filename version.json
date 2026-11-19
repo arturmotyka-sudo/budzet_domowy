@@ -1,7 +1,8 @@
 {
-  "version": "3.5",
+  "version": "3.6",
   "date": "2026-11-19",
   "changes": [
-    "Dodawanie nowej kategorii prosto z okienka wydatku („+ Nowa kategoria”)"
+    "Czytelniejszy opis kategorii bez planu („brak planu – stuknij, by ustawić”) i „ponad plan o …”",
+    "Przycisk „Ustaw plan = wydane + zaplanowane” w kategorii"
   ]
 }

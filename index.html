@@ -333,7 +333,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -699,7 +699,8 @@ function catRow(x, cc) {
   const noPlan = REPORT ? 'brak planu' : 'brak planu – stuknij, by ustawić';
   const pl = cc.planned ? ` · <span class="neg">🕒 zaplanowane ${zl(cc.planned)}</span>` : '';
   const verb = x.group === 'oszczednosci' ? 'odłożone' : x.group === 'stale' ? 'zapłacone' : 'wydane';
-  if (left < 0) { right = `<span class="neg">−${zl(-left)}</span>`; sub = `przekroczono · ${verb} ${zl(real)} z ${zl(cc.plan)}`; bc = 'bad'; }
+  if (left < 0 && !cc.plan) { right = `<span class="neg">−${zl(-left)}</span>`; sub = REPORT ? 'brak planu' : `<span class="neg">brak planu – stuknij, by ustawić</span>${real ? ` · ${verb} ${zl(real)}` : ''}`; bc = 'bad'; }
+  else if (left < 0) { right = `<span class="neg">−${zl(-left)}</span>`; sub = `ponad plan o ${zl(-left)} · ${verb} ${zl(real)} z ${zl(cc.plan)}`; bc = 'bad'; }
   else if (x.group === 'stale' && cc.plan > 0 && left === 0 && !cc.planned) { right = `<span class="pos">✓ opłacone</span>`; sub = `zapłacono ${zl(real)}`; }
   else if (left === 0 && cc.planned) { right = `<span class="neg">🕒 do zapłaty</span>`; sub = `${verb} ${zl(real)} z ${zl(cc.plan)}`; }
   else { right = zl(left); sub = cc.plan ? `${verb} ${zl(real)} z ${zl(cc.plan)}` : noPlan; }
@@ -784,6 +785,7 @@ function helpHtml() {
       <span class="neg"><b>−80,00 zł</b></span><span>zaplanowana płatność / zlecenie stałe (jeszcze niezapłacona)</span>
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
       <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek – liczy się do „Wydane”</span>
+      <span class="neg"><b>brak planu</b></span><span>w kategorii są wydatki, a plan wynosi 0 zł – stuknij kategorię i ustaw plan (przycisk „Ustaw plan = …”)</span>
       <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
       <span style="color:var(--vivid)"><b>Bilans</b></span><span>zielony – kwota, która pozostała do rozdysponowania (przydziel ją do kategorii)</span>
       <span class="neg"><b>Bilans</b></span><span>czerwony – brakuje pieniędzy (zaplanowano więcej, niż macie, albo przeszedł minus z poprzedniego miesiąca)</span>
@@ -911,6 +913,7 @@ function openCat(id) {
     <label class="f">Plan na ${esc(monthLabel(S.month))}</label>
     <input class="amt" id="plan" inputmode="decimal" placeholder="0,00" value="${toInput(cc.plan)}">
     <span class="sub" id="planhint" style="text-align:center;margin-top:6px"></span>
+    ${cc.spent > cc.plan ? `<button class="btn sec" data-act="planmatch" data-v="${cc.spent}">Ustaw plan = ${zl(cc.spent)} (wydane + zaplanowane)</button>` : ''}
     <div class="row2"><button class="btn sec" data-act="planfill">Wyrównaj bilans</button><button class="btn" data-act="plansave">Zapisz plan</button></div>
     <div class="card" style="margin-top:16px">`}
     <div class="kv"><span>Wydane (zapłacone)</span><b>${zl(cc.spent - (cc.planned || 0))}</b></div>${cc.planned ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
@@ -1321,6 +1324,7 @@ document.addEventListener('click', async e => {
     }
 
     case 'cat': openCat(ds.id); break;
+    case 'planmatch': $('#plan').value = toInput(Number(ds.v)); updatePlanHint(); break;
     case 'planfill': { const s = S.sheet; $('#plan').value = toInput(Math.max(0, s.basePlan + s.baseAssign)); updatePlanHint(); break; }
     case 'plansave': {
       const v = parseZl($('#plan').value); if (isNaN(v) || v < 0) { toast('Wpisz poprawną kwotę'); return; }
