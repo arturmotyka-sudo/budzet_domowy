@@ -12,7 +12,7 @@ Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 | `sw.js` | działanie bez internetu i aktualizacje |
 | `version.json` | numer najnowszej wersji i lista zmian (sprawdzany w Pomoc → Aktualizacja) |
 | `manifest.webmanifest` | nazwa, kolory i ikony aplikacji na telefonie |
-| `moneta-192.png`, `moneta-512.png`, `moneta-maskable.png` | ikona – złota moneta |
+| `coin-192.png`, `coin-512.png`, `coin-maskable.png` | ikona – złota moneta z symbolem $ |
 | `xlsx.full.min.js` | eksport do Excela |
 | `README.md` | ten opis |
 
@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **4.4** – przesunięcie w lewo usuwa od razu (z „Cofnij”), przesunięcie zaplanowanej pozycji w prawo przenosi ją na kolejny miesiąc / za 2–3 miesiące / za rok; nowa ikona – złota moneta z symbolem $.
 - **4.3** – polecanie aplikacji: link z instrukcją mailem, komunikatorem lub do skopiowania.
 - **4.2** – kolory stanu konta (czerwony / pomarańczowy / zielony) z progami w Ustawieniach.
 - **4.1** – wszystkie kwoty z odstępem tysięcy (1 000,00 zł).
