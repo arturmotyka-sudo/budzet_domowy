@@ -123,6 +123,12 @@ p.sub{margin:6px 0}
 .banner.info{background:var(--acc2);color:var(--acc)}
 .banner button{border:0;background:none;color:inherit;font-weight:650;text-decoration:underline;padding:0;margin-left:4px}
 .hidden{display:none!important}
+:root{--orange:#e07b00}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--orange:#f59e0b}}
+:root[data-theme=dark]{--orange:#f59e0b}
+.b-low{color:var(--bad)!important}.b-mid{color:var(--orange)!important}.b-ok{color:var(--vivid)!important}
+.wallet{border-left-width:5px}
+.wallet.b-low-w{border-left-color:var(--bad)}.wallet.b-mid-w{border-left-color:var(--orange)}.wallet.b-ok-w{border-left-color:var(--vivid)}
 :root{--vivid:#16a34a;--vividbg:#dcfce7}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--vivid:#22c55e;--vividbg:#12301f}}
 :root[data-theme=dark]{--vivid:#22c55e;--vividbg:#12301f}
@@ -343,7 +349,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -582,6 +588,9 @@ function chain() {
 }
 const monthInfo = m => (S.data && S.data.months[m]) ? chain()[m] : null;
 const calc = () => { const r = monthInfo(S.month); return r ? r.c : calcFor(S.settings, S.monthDoc, S.tx); };
+/* kolor stanu konta: do progu „niski” czerwony, do „średni” pomarańczowy, wyżej zielony */
+const balLevels = () => { const c = (S.settings && S.settings.colors) || {}; return {low: c.low ?? 50000, mid: c.mid ?? 150000}; };
+const balCls = v => { const l = balLevels(); return v <= l.low ? 'b-low' : v <= l.mid ? 'b-mid' : 'b-ok'; };
 const catById = id => (S.settings?.categories || []).find(c => c.id === id);
 const walletById = id => (S.settings?.wallets || []).find(w => w.id === id);
 const catName = id => catById(id)?.name || '(usunięta kategoria)';
@@ -679,7 +688,7 @@ function budgetHtml() {
   const actBtn = t => S.readOnly ? '' : t.planned ? `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>` : `<span class="paybtn" style="border:0;background:none;color:var(--ok)">✓</span>`;
   const row = t => swWrap(`<div class="plrow">${txRow(t, true, true)}${actBtn(t)}</div>`, 'swdel', t.id);
   h += `<h3>Na kontach <span>${zl(c.actualTotal)}</span></h3><div class="wallets">`;
-  for (const w of walletList(c)) { const x = c.W[w.id]; h += `<button class="wallet" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b>${zl(x.actual)}</b>${x.bal !== x.actual ? `<span class="sub">po zaplanowanych: ${zl(x.bal)}</span>` : ''}</button>`; }
+  for (const w of walletList(c)) { const x = c.W[w.id]; h += `<button class="wallet ${balCls(x.actual)}-w" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b class="${balCls(x.actual)}">${zl(x.actual)}</b>${x.bal !== x.actual ? `<span class="sub">po zaplanowanych: <b class="${balCls(x.bal)}" style="font-size:inherit">${zl(x.bal)}</b></span>` : ''}</button>`; }
   h += `</div>`;
   // 💵 Wpływy: spodziewane i otrzymane
   const inc = S.tx.filter(t => t.type === 'wplyw');
@@ -822,6 +831,11 @@ function settingsHtml() {
     h += `<div class="rrow"><span class="emo">${esc(c?.emoji || (r.type === 'wplyw' ? '💵' : r.type === 'przelew' ? '🔁' : '❔'))}</span><span class="cbody"><span class="cname" style="display:block">${esc(ruleTitle(r))}${r.note ? ' · ' + esc(r.note) : ''}</span><span class="sub">${esc(ruleWhen(r))} · ${zl(r.amount)}</span></span><button class="ib del" style="width:40px" data-act="rdel" data-id="${esc(r.id)}" aria-label="Usuń">✕</button></div>`;
   }
   h += `</div>`;
+  const lv = {low:(d.colors && d.colors.low) ?? 50000, mid:(d.colors && d.colors.mid) ?? 150000};
+  h += `<h3>Kolory stanu konta</h3><div class="card">
+    <div class="row2"><div><label class="f" style="margin-top:0"><span class="b-low">●</span> Czerwony do</label><input inputmode="decimal" data-in="colLow" value="${toInput(lv.low)}"></div>
+    <div><label class="f" style="margin-top:0"><span class="b-mid">●</span> Pomarańczowy do</label><input inputmode="decimal" data-in="colMid" value="${toInput(lv.mid)}"></div></div>
+    <p class="sub"><span class="b-ok">●</span> Zielony – powyżej drugiego progu. Kolory dotyczą kwoty na każdym koncie i linijki „po zaplanowanych”. Zapisz przyciskiem „Zapisz zmiany”.</p></div>`;
   h += `<h3>Konta / osoby</h3><div class="card">`;
   d.wallets.forEach((w, i) => h += `<div class="srow w"><input value="${esc(w.name)}" data-in="wname" data-i="${i}" placeholder="Nazwa"><button class="ib del" data-act="wdel" data-i="${i}" aria-label="Usuń">✕</button></div>`);
   h += `<button class="chip" style="margin-top:10px" data-act="wadd">+ Dodaj konto</button></div>`;
@@ -855,6 +869,7 @@ function helpHtml() {
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
       <span><b>−45,90 zł</b></span><span>zwykły, zapłacony wydatek – liczy się do „Wydane”</span>
       <span><b>plan z pozycji</b></span><span>kategoria bez wpisanego limitu – plan to suma jej pozycji (np. podatek 26 + 272 = 298 zł)</span>
+      <span><b class="b-low">850 zł</b> <b class="b-mid">1 200 zł</b> <b class="b-ok">3 000 zł</b></span><span>stan konta: czerwony do 500 zł, pomarańczowy do 1 500 zł, zielony powyżej (progi zmienisz w Ustawieniach → Kolory stanu konta)</span>
       <span class="sub" style="display:inline">po zaplanowanych</span><span>pod kontem: ile zostanie, gdy wszystkie zaplanowane wpływy i płatności się wykonają</span>
       <span style="color:var(--vivid)"><b>Bilans</b></span><span>zielony – kwota, która pozostała do rozdysponowania (przydziel ją do kategorii)</span>
       <span class="neg"><b>Bilans</b></span><span>czerwony – brakuje pieniędzy (zaplanowano więcej, niż macie, albo przeszedł minus z poprzedniego miesiąca)</span>
@@ -1022,7 +1037,7 @@ function openWallet(id) {
   const carried = mi && mi.carry ? (mi.carried[id] || 0) : null;
   const transfers = (w.tin - w.ptin) - (w.tout - w.ptout);
   openSheet(`${head(esc(walletName(id)))}
-    <div class="center"><span class="sub">Na koncie teraz</span><div style="font-size:30px;font-weight:700">${zl(w.actual)}</div>${w.bal !== w.actual ? `<span class="sub">po zaplanowanych: <b>${zl(w.bal)}</b></span>` : ''}</div>
+    <div class="center"><span class="sub">Na koncie teraz</span><div style="font-size:30px;font-weight:700" class="${balCls(w.actual)}">${zl(w.actual)}</div>${w.bal !== w.actual ? `<span class="sub">po zaplanowanych: <b class="${balCls(w.bal)}">${zl(w.bal)}</b></span>` : ''}</div>
     ${S.readOnly ? `<div class="card">${carried !== null ? `<div class="kv"><span>Przeniesione z: ${esc(monthLabel(mi.prev))}</span><b>${zl(carried)}</b></div>` : ''}<div class="kv"><span>Na start miesiąca</span><b>${zl(w.start)}</b></div>` : `
     <label class="f">Środki na start miesiąca${carried !== null ? ` (przeniesione z: ${esc(monthLabel(mi.prev))}: ${zl(carried)})` : ''}</label>
     <input class="amt" id="wstart" inputmode="decimal" placeholder="0,00" value="${toInput(w.start)}">
@@ -1771,6 +1786,11 @@ document.addEventListener('click', async e => {
       const d = clone(S.draft);
       d.wallets.forEach(w => w.name = w.name.trim()); d.categories.forEach(c => { c.name = c.name.trim(); c.emoji = (c.emoji || '').trim() || '🏷️'; delete c.autoIcon; });
       if (d.wallets.some(w => !w.name) || d.categories.some(c => !c.name)) { toast('Uzupełnij wszystkie nazwy'); return; }
+      if (d.colors) {
+        const lo = typeof d.colors.low === 'string' ? parseZl(d.colors.low) : d.colors.low, mi = typeof d.colors.mid === 'string' ? parseZl(d.colors.mid) : d.colors.mid;
+        if ([lo, mi].some(v => v === undefined || isNaN(v)) || lo >= mi) { toast('Progi kolorów: pierwszy musi być mniejszy od drugiego'); return; }
+        d.colors = {low:lo, mid:mi};
+      }
       if (await write(store.saveSettings(d), 'Zapisano ustawienia')) { S.draft = d; S.draftDirty = false; renderMain(true); }
       break;
     }
@@ -1796,6 +1816,7 @@ document.addEventListener('input', e => {
   }
   else if (k === 'cemoji') S.draft.categories[i].emoji = el.value;
   else if (k === 'cgroup') S.draft.categories[i].group = el.value;
+  else if (k === 'colLow' || k === 'colMid') { S.draft.colors = S.draft.colors || {}; S.draft.colors[k === 'colLow' ? 'low' : 'mid'] = el.value; }
   if (!S.draftDirty) { S.draftDirty = true; const b = document.querySelector('[data-act="ssave"]'); if (b) b.textContent = 'Zapisz zmiany •'; }
 });
 document.addEventListener('change', e => { if (e.target.matches('select[data-in]')) e.target.dispatchEvent(new Event('input', {bubbles:true})); });

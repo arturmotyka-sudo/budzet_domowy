@@ -1,7 +1,7 @@
 {
-  "version": "4.1",
+  "version": "4.2",
   "date": "2026-11-19",
   "changes": [
-    "Wszystkie kwoty z odstępem tysięcy, np. 1 000,00 zł"
+    "Kolory stanu konta: czerwony do 500 zł, pomarańczowy do 1 500 zł, zielony powyżej – progi do zmiany w Ustawieniach"
   ]
 }
