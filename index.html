@@ -333,7 +333,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -810,7 +810,8 @@ function helpHtml() {
       <li>Zielony przycisk <b>+</b> (prawy dolny róg).</li>
       <li>Wpisz kwotę, wybierz <b>kategorię</b> (obok nazwy widać, ile w niej zostało) i <b>z czyich pieniędzy</b>.</li>
       <li>Opcjonalnie data i notatka → <b>Dodaj</b>.</li></ol>
-      <p>Szybciej: stuknij kategorię → <b>+ Dodaj wydatek</b>.</p>`)
+      <p>Szybciej: stuknij kategorię → <b>+ Dodaj wydatek</b>.</p>
+      <p>Brakuje kategorii? Na końcu listy kategorii stuknij <b>+ Nowa kategoria</b>, wpisz nazwę (ikona dobierze się sama), wybierz grupę i <b>Dodaj</b> – od razu będzie wybrana.</p>`)
   + sec('➕ Wpływ (pensja, premia, zwrot)', `<ol>
       <li><b>+</b> → zakładka <b>Wpływ</b> u góry okienka.</li>
       <li>Kwota i <b>na które konto</b> (Ja / Żona) → <b>Dodaj</b>.</li></ol>
@@ -973,7 +974,14 @@ function renderTxSheet(focus) {
   if (t.type === 'wydatek') {
     h += `<label class="f">Kategoria</label><div class="chips">${S.settings.categories.map(x => {
       const cc = c.C[x.id]; const left = cc.plan - cc.spent + (orig && orig.type === 'wydatek' && orig.cat === x.id ? orig.amount : 0);
-      return `<button class="chip${x.id === t.cat ? ' on' : ''}" data-act="pick" data-f="cat" data-v="${esc(x.id)}">${esc((x.emoji || '') + ' ' + x.name)}<small>${zl(left)}</small></button>`; }).join('')}</div>`;
+      return `<button class="chip${x.id === t.cat ? ' on' : ''}" data-act="pick" data-f="cat" data-v="${esc(x.id)}">${esc((x.emoji || '') + ' ' + x.name)}<small>${zl(left)}</small></button>`; }).join('')}${t.newCat ? '' : '<button class="chip" data-act="tnewcat" style="border-style:dashed">+ Nowa kategoria</button>'}</div>`;
+    if (t.newCat) {
+      const nc = t.newCat, ic = guessIcon(nc.name) || '🏷️';
+      h += `<div class="card" style="margin-top:10px"><b>Nowa kategoria</b>
+        <div class="row2" style="grid-template-columns:52px 1fr;margin-top:10px"><span class="emo" id="ncicon" style="width:52px;height:46px;font-size:24px">${ic}</span><input id="ncname" placeholder="np. Paliwo" value="${esc(nc.name)}" maxlength="40"></div>
+        <div class="chips" style="margin-top:10px">${Object.entries(GROUP_SHORT).map(([g, l]) => `<button class="chip${nc.group === g ? ' on' : ''}" data-act="tncgroup" data-v="${g}">${l}</button>`).join('')}</div>
+        <div class="row2"><button class="btn sec" data-act="tnccancel">Anuluj</button><button class="btn" data-act="tncadd">Dodaj</button></div></div>`;
+    }
     h += `<label class="f">Z czyich pieniędzy</label>${chipsW('wallet', t.wallet)}`;
   } else if (t.type === 'wplyw') {
     h += `<label class="f">Na konto</label>${chipsW('wallet', t.wallet)}`;
@@ -1358,6 +1366,22 @@ document.addEventListener('click', async e => {
     case 'pick': syncTxInputs(); S.txDraft[ds.f] = ds.v;
       if (ds.f === 'wallet' && S.txDraft.type === 'przelew' && S.txDraft.to === ds.v) S.txDraft.to = S.settings.wallets.find(w => w.id !== ds.v)?.id || null;
       renderTxSheet(false); break;
+    case 'tnewcat': syncTxInputs(); S.txDraft.newCat = {name:'', group:'zmienne'}; renderTxSheet(false); setTimeout(() => { const n = $('#ncname'); if (n) { n.focus(); n.scrollIntoView({block:'center'}); } }, 60); break;
+    case 'tncgroup': syncTxInputs(); { const n = $('#ncname'); if (n) S.txDraft.newCat.name = n.value; } S.txDraft.newCat.group = ds.v; renderTxSheet(false); break;
+    case 'tnccancel': syncTxInputs(); delete S.txDraft.newCat; renderTxSheet(false); break;
+    case 'tncadd': {
+      syncTxInputs();
+      const nc = S.txDraft.newCat, name = (($('#ncname') || {}).value || '').trim();
+      if (!name) { toast('Wpisz nazwę kategorii'); return; }
+      if (S.settings.categories.some(c => c.name.toLowerCase() === name.toLowerCase())) { toast('Taka kategoria już jest'); return; }
+      const cat = {id:uid(), emoji:guessIcon(name) || '🏷️', name, group:nc.group || 'zmienne'};
+      const st = clone(S.settings); st.categories.push(cat);
+      if (!(await write(store.saveSettings(st)))) return;
+      if (S.draft) S.draft.categories.push(clone(cat));
+      delete S.txDraft.newCat; S.txDraft.cat = cat.id;
+      renderTxSheet(false); toast(`Dodano kategorię ${cat.emoji} ${name}`);
+      break;
+    }
     case 'tplanned': syncTxInputs(); S.txDraft.planned = !S.txDraft.planned; renderTxSheet(false); break;
     case 'trepeat': syncTxInputs(); S.txDraft.repeat = ds.v; if (ds.v !== 'none' && !S.txDraft.id) S.txDraft.planned = S.txDraft.planned; renderTxSheet(false); break;
     case 'tsave': {
@@ -1519,6 +1543,7 @@ $('#importFile').addEventListener('change', e => { const f = e.target.files && e
 document.addEventListener('input', e => {
   const el = e.target;
   if (el.id === 'plan') { updatePlanHint(); return; }
+  if (el.id === 'ncname') { if (S.txDraft && S.txDraft.newCat) S.txDraft.newCat.name = el.value; const i = $('#ncicon'); if (i) i.textContent = guessIcon(el.value) || '🏷️'; return; }
   const k = el.dataset && el.dataset.in; if (!k || !S.draft) return;
   const i = +el.dataset.i;
   if (k === 'wname') S.draft.wallets[i].name = el.value;
