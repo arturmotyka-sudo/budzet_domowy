@@ -1,11 +1,9 @@
 {
-  "version": "3.8",
+  "version": "3.9",
   "date": "2026-11-19",
   "changes": [
-    "Historia: najnowsze dodane/edytowane na górze, z godziną; wyszukiwarka we wszystkich miesiącach",
-    "Osobne listy: spodziewane wpływy i zaplanowane wydatki",
-    "Bez dublowania: kategorie tylko z zaplanowanymi pozycjami są ukryte na liście kategorii",
-    "Rozliczenie „skąd te kwoty” po stuknięciu karty bilansu",
-    "Usuwanie kategorii: przenieś operacje albo usuń razem z nimi; porządkowanie starych usuniętych"
+    "Nowy układ ekranu Budżet: 💵 Wpływy · 🧾 Płatności (znane kwoty: do zapłaty i zapłacone) · 🛒 Wydatki z limitem (np. Życie 2000 zł)",
+    "Kategorie bez limitu nie dublują się – ich pozycje są tylko w Płatnościach",
+    "Przycisk „+ Ustaw limit dla kategorii”"
   ]
 }

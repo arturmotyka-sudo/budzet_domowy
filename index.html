@@ -335,7 +335,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -666,26 +666,36 @@ function budgetHtml() {
             : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
   let h = `<div class="card hero ${cls}" data-act="recon" style="cursor:pointer"><div class="k" style="display:flex;justify-content:space-between">Pozostało do rozdysponowania<span class="sub" style="font-weight:400">ⓘ skąd?</span></div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}
   <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent - c.plannedOut)}</b></div><div>Zostało<b class="${c.leftTotal < 0 ? 'neg' : ''}">${zl(c.leftTotal)}</b></div></div>${c.plannedOut ? `<div class="sub neg" style="margin-top:8px">🕒 Zaplanowane (do zapłaty): <b>${zl(c.plannedOut)}</b></div>` : ''}${carryLine()}</div>`;
-  const planned = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
-  const plRow = t => `<div class="plrow">${txRow(t, true, true)}${S.readOnly ? '' : `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>`}</div>`;
-  const pIn = planned.filter(t => t.type === 'wplyw'), pOut = planned.filter(t => t.type !== 'wplyw');
-  if (pIn.length) h += `<h3>🕒 Spodziewane wpływy<span class="pos">+${zl(pIn.reduce((x, t) => x + t.amount, 0))}</span></h3><div class="card list">${pIn.map(plRow).join('')}</div>`;
-  if (pOut.length) h += `<h3>🕒 Zaplanowane wydatki<span class="neg">−${zl(pOut.filter(t => t.type === 'wydatek').reduce((x, t) => x + t.amount, 0))}</span></h3><div class="card list">${pOut.map(plRow).join('')}</div>`;
+  const byDate = (x, y) => (x.d || '').localeCompare(y.d || '') || (x.ts || 0) - (y.ts || 0);
+  const isLimit = id => !!(c.C[id] && c.C[id].manual);
+  const actBtn = t => S.readOnly ? '' : t.planned ? `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>` : `<span class="paybtn" style="border:0;background:none;color:var(--ok)">✓</span>`;
+  const row = t => `<div class="plrow">${txRow(t, true, true)}${actBtn(t)}</div>`;
+  // 💵 Wpływy: spodziewane i otrzymane
+  const inc = S.tx.filter(t => t.type === 'wplyw');
+  if (inc.length) {
+    const exp = inc.filter(t => t.planned).sort(byDate), got = inc.filter(t => !t.planned).sort(byDate);
+    const sum = l => l.reduce((x, t) => x + t.amount, 0);
+    h += `<h3>💵 Wpływy<span class="pos">+${zl(sum(inc))}</span></h3><div class="card list">${exp.map(row).join('')}${got.map(row).join('')}</div>`;
+    if (exp.length && got.length) h += `<div class="sub" style="margin:4px 4px 0">🕒 spodziewane ${zl(sum(exp))} · ✓ otrzymane ${zl(sum(got))}</div>`;
+  }
+  // 🧾 Płatności – znane kwoty: wszystkie zaplanowane + zapłacone z kategorii bez limitu
+  const pays = S.tx.filter(t => t.type !== 'wplyw' && (t.planned || (t.type === 'wydatek' && !isLimit(t.cat))));
+  if (pays.length) {
+    const todo = pays.filter(t => t.planned).sort(byDate), done = pays.filter(t => !t.planned).sort(byDate);
+    const sumE = l => l.filter(t => t.type === 'wydatek').reduce((x, t) => x + t.amount, 0);
+    h += `<h3>🧾 Płatności<span>${todo.length ? `<span class="neg">do zapłaty ${zl(sumE(todo))}</span>` : ''}${todo.length && done.length ? ' · ' : ''}${done.length ? `✓ ${zl(sumE(done))}` : ''}</span></h3><div class="card list">${todo.map(row).join('')}${done.map(row).join('')}</div>`;
+  }
   h += `<h3>Na kontach <span>${zl(c.actualTotal)}</span></h3><div class="wallets">`;
   for (const w of walletList(c)) { const x = c.W[w.id]; h += `<button class="wallet" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b>${zl(x.actual)}</b>${x.bal !== x.actual ? `<span class="sub">po zaplanowanych: ${zl(x.bal)}</span>` : ''}</button>`; }
   h += `</div>`;
-  // kategoria bez limitu, której pozycje są tylko zaplanowane, jest już w „Zaplanowane wydatki” – nie dublujemy; puste chowamy
-  const hiddenWhy = cc => (!cc.manual && cc.spent > 0 && cc.spent === cc.planned) ? 'dup' : null;
-  let hidden = 0;
-  for (const [g, label] of GROUPS) {
-    const cats = st.categories.filter(x => (x.group || 'zmienne') === g);
-    const vis = S.showAllCats ? cats : cats.filter(x => !hiddenWhy(c.C[x.id]));
-    hidden += cats.length - vis.length;
-    if (!vis.length) continue;
-    const gl = vis.reduce((s, x) => s + c.C[x.id].plan - c.C[x.id].spent, 0);
-    h += `<h3>${label}<span>zostało ${zl(gl)}</span></h3><div class="card list">${vis.map(x => catRow(x, c.C[x.id])).join('')}</div>`;
-  }
-  if (hidden || S.showAllCats) h += `<button class="chip" style="margin:12px auto 0;display:block" data-act="togglecats">${S.showAllCats ? 'Ukryj kategorie widoczne w „Zaplanowane wydatki”' : `Pokaż też kategorie z samymi zaplanowanymi (${hidden})`}</button>`;
+  // 🛒 Wydatki z limitem (koperty)
+  const order = Object.fromEntries(GROUPS.map(([g], i) => [g, i]));
+  const lim = st.categories.filter(x => isLimit(x.id)).sort((x, y) => (order[x.group || 'zmienne'] || 0) - (order[y.group || 'zmienne'] || 0));
+  const limLeft = lim.reduce((x, k) => x + c.C[k.id].plan - c.C[k.id].spent, 0);
+  h += `<h3>🛒 Wydatki z limitem${lim.length ? `<span>zostało ${zl(limLeft)}</span>` : ''}</h3>`;
+  if (lim.length) h += `<div class="card list">${lim.map(x => catRow(x, c.C[x.id])).join('')}</div>`;
+  else h += `<div class="card"><p class="sub" style="margin:0">Ustaw limit na wydatki bieżące, np. <b>Życie 2000 zł</b> – potem dopisujesz wydatki i widzisz, ile zostało.</p></div>`;
+  if (!S.readOnly) h += `<button class="chip" style="margin:10px auto 0;display:block;border-style:dashed" data-act="addlimit">+ Ustaw limit dla kategorii</button>`;
   const orph = Object.entries(c.C).filter(([, v]) => v.orphan && (v.plan || v.spent));
   if (orph.length) h += `<h3>Operacje z usuniętych kategorii</h3><div class="card list">${orph.map(([id, v]) => catRow({id, name:'(usunięta kategoria) – stuknij, by uporządkować', emoji:'❔'}, v)).join('')}</div>`;
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
@@ -826,7 +836,11 @@ function settingsHtml() {
 
 function helpHtml() {
   const sec = (title, body, open) => `<details class="help"${open ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
-  return `<div class="card"><b>Budżet „kopertowy” w skrócie</b><p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie (koperty), aż <b>Do rozdysponowania</b> pokaże <b>0 zł</b>. Każdy wydatek zmniejsza jednocześnie kategorię i konto, więc bilans dalej wynosi zero.</p></div>`
+  return `<div class="card"><b>Jak to działa w skrócie</b><p class="sub">Ekran Budżet ma trzy części:</p><ul class="sub" style="padding-left:18px;margin:0">
+      <li><b>💵 Wpływy</b> – pensja, najem itp.: spodziewane (🕒, z przyciskiem ✓ Wpłynęło) i otrzymane (✓).</li>
+      <li><b>🧾 Płatności</b> – wydatki o <b>znanej kwocie</b>: podatek, czynsz, prąd, opłaty stałe. Do zapłaty na czerwono (✓ Zapłacone), zapłacone z ✓. Możesz od razu wpisać płatność jako zapłaconą (bez przełącznika „Zaplanowana”).</li>
+      <li><b>🛒 Wydatki z limitem</b> – np. <b>Życie 2000 zł</b>: dopisujesz wydatki i widzisz, ile zostało.</li></ul>
+      <p class="sub">Kategoria z ustawionym limitem jest w „Wydatki z limitem”, bez limitu – jej pozycje są w „Płatności”. <b>Pozostało do rozdysponowania</b> = środki − limity − płatności. Cel: 0 zł.</p></div>`
   + sec('🎨 Co oznaczają kolory', `<div class="legend">
       <span class="neg"><b>−80,00 zł</b></span><span>zaplanowana płatność / zlecenie stałe (jeszcze niezapłacona)</span>
       <span class="pos"><b>+6000,00 zł</b></span><span>wpływ</span>
@@ -891,7 +905,7 @@ function helpHtml() {
       <li>Na dole – pozycje <b>dodane automatycznie</b> (powtarzające się).</li>
       <li><b>🔍 Szukaj</b> przeszukuje wszystkie miesiące: wpisz nazwę, kategorię, kwotę albo notatkę (np. „prąd”, „326”, „Orlen”). Stuknięcie wyniku otwiera go w jego miesiącu.</li></ul>`)
   + sec('🧮 Skąd biorą się kwoty', `<p>Stuknij kartę <b>Pozostało do rozdysponowania</b> – zobaczysz rozliczenie: start + wpływy (otrzymane i spodziewane) − plan = pozostało, oraz osobno: ile jest naprawdę na kontach i ile będzie po zaplanowanych.</p>
-      <p>Na ekranie Budżet <b>spodziewane wpływy</b> i <b>zaplanowane wydatki</b> są w osobnych listach z własnymi sumami. Kategoria bez limitu, której pozycje są tylko zaplanowane (np. podatek), nie jest powtarzana na liście kategorii, żeby nie dublować linii – pojawi się tam po zapłaceniu jako „✓”. Przycisk pod listą pokazuje ją mimo to. Nieużywane kategorie najlepiej usunąć w Ustawieniach.</p>`)
+      <p>Każda pozycja jest tylko w jednym miejscu: wpływy w <b>💵 Wpływy</b>, znane kwoty w <b>🧾 Płatności</b>, wydatki z kategorii z limitem w <b>🛒 Wydatki z limitem</b> (zaplanowana pozycja w kategorii z limitem pokazuje się też w Płatnościach, żeby można było stuknąć ✓).</p>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
@@ -964,12 +978,12 @@ function openCat(id) {
   const list = sortTx(S.tx.filter(t => t.type === 'wydatek' && t.cat === id));
   openSheet(`<div class="shead"><h2>${S.readOnly || !catById(id) ? esc(x.emoji || '') : `<button class="ib emobtn" style="width:48px;margin-right:6px" data-act="catemo" data-id="${esc(id)}" aria-label="Zmień ikonę">${esc(x.emoji || '🏷️')}</button>`}${esc(x.name)}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>
     ${S.readOnly ? `<div class="card"><div class="kv"><span>Plan</span><b>${zl(cc.plan)}</b></div>` : `
-    <label class="f">Plan na ${esc(monthLabel(S.month))}</label>
+    <label class="f">Limit na ${esc(monthLabel(S.month))} <span style="font-weight:400">(puste = bez limitu, pozycje w „Płatności”)</span></label>
     <input class="amt" id="plan" inputmode="decimal" placeholder="${cc.auto ? 'auto: ' + toInput(cc.plan) : '0,00'}" value="${cc.auto ? '' : toInput(cc.plan)}">
-    ${cc.auto ? `<span class="hint center">Plan liczy się automatycznie z pozycji (${zl(cc.plan)}). Wpisz kwotę tylko, jeśli chcesz stały limit.</span>` : ''}
+    ${cc.auto ? `<span class="hint center">Bez limitu – pozycje tej kategorii (${zl(cc.plan)}) są w sekcji „Płatności”. Wpisz kwotę, jeśli chcesz limit, np. na życie.</span>` : ''}
     <span class="sub" id="planhint" style="text-align:center;margin-top:6px"></span>
     ${!cc.auto && cc.spent > cc.plan ? `<button class="btn sec" data-act="planmatch" data-v="${cc.spent}">Ustaw plan = ${zl(cc.spent)} (wydane + zaplanowane)</button>` : ''}
-    <div class="row2"><button class="btn sec" data-act="planfill">Wyrównaj bilans</button><button class="btn" data-act="plansave">Zapisz plan</button></div>
+    <div class="row2"><button class="btn sec" data-act="planfill">Wyrównaj bilans</button><button class="btn" data-act="plansave">Zapisz limit</button></div>
     <div class="card" style="margin-top:16px">`}
     <div class="kv"><span>Wydane (zapłacone)</span><b>${zl(cc.spent - (cc.planned || 0))}</b></div>${cc.planned ? `<div class="kv"><span>🕒 Zaplanowane (do zapłaty)</span><b class="neg">${zl(cc.planned)}</b></div>` : ''}<div class="kv"><span>Zostało</span><b class="${cc.plan - cc.spent < 0 ? 'neg' : ''}">${zl(cc.plan - cc.spent)}</b></div></div>
     ${S.readOnly || !catById(id) ? '' : `<button class="btn sec" data-act="addtx" data-cat="${esc(id)}">+ Dodaj wydatek</button>`}
@@ -1438,6 +1452,15 @@ document.addEventListener('click', async e => {
     case 'cat': openCat(ds.id); break;
     case 'recon': openRecon(); break;
     case 'togglecats': S.showAllCats = !S.showAllCats; render(); break;
+    case 'addlimit': {
+      const c = calc();
+      const free = S.settings.categories.filter(x => !(c.C[x.id] && c.C[x.id].manual));
+      const ch = await choose('Dla której kategorii ustawić limit na ' + monthLabel(S.month) + '?', [...free.map(x => ({label:(x.emoji || '') + ' ' + x.name})), {label:'+ Nowa kategoria (dodasz ją w Ustawieniach)'}]);
+      if (ch < 0) return;
+      if (ch === free.length) { S.tab = 'ustawienia'; S.draft = null; render(); toast('Dodaj kategorię i zapisz, potem ustaw jej limit'); return; }
+      openCat(free[ch].id); setTimeout(() => { const p = $('#plan'); if (p) p.focus(); }, 250);
+      break;
+    }
     case 'orphfix': { const id = ds.id; closeSheet(); const r = await categoryCleanup(id, 'usunięta kategoria'); if (r !== 'cancel') toast(r.startsWith('moved:') ? `Przeniesiono do „${r.slice(6)}”` : 'Uporządkowano'); break; }
     case 'planmatch': $('#plan').value = toInput(Number(ds.v)); updatePlanHint(); break;
     case 'planfill': { const s = S.sheet; $('#plan').value = toInput(Math.max(s.spent || 0, s.basePlan + s.baseAssign)); updatePlanHint(); break; }

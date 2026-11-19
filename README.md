@@ -1,6 +1,6 @@
 # Budżet domowy – aplikacja na telefon
 
-**Wersja 3.8** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
+**Wersja 3.9** · prosta aplikacja do planowania wydatków metodą „kopertową”: wszystkie pieniądze rozdzielasz na kategorie, aż bilans pokaże 0 zł. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -44,6 +44,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Najważniejsze funkcje (skrót)
 
+- **Układ ekranu Budżet** – 💵 Wpływy (spodziewane i otrzymane) · 🧾 Płatności o znanej kwocie (podatek, czynsz, prąd; do zapłaty i zapłacone) · 🛒 Wydatki z limitem (np. Życie 2000 zł, dopisujesz wydatki i widzisz, ile zostało).
 - **Bilans do zera** – „Pozostało do rozdysponowania” pokazuje, ile pieniędzy nie ma jeszcze przydziału. Plan kategorii wpisujesz jako limit (np. Życie) albo zostawiasz pusty – wtedy liczy się automatycznie z pozycji (np. podatek, prąd).
 - **Wydatki, wpływy, przelewy** – zielony przycisk **+**.
 - **Zaplanowane płatności** (czerwone, np. zlecenia stałe) i **spodziewane wpływy** – rezerwują pieniądze w budżecie, ale nie liczą się do „Wydane” ani do stanu konta, dopóki nie stukniesz **✓ Zapłacone / ✓ Wpłynęło**.
@@ -66,6 +67,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **3.9** – nowy układ: Wpływy · Płatności (znane kwoty) · Wydatki z limitem; bez dublowania kategorii.
 - **3.8** – historia wg kolejności dodania (najnowsze na górze) i wyszukiwarka; osobne listy spodziewanych wpływów i zaplanowanych wydatków; bez dublowania kategorii; rozliczenie „skąd te kwoty”; usuwanie kategorii z przeniesieniem lub usunięciem operacji.
 - **3.7** – plan automatyczny: kategoria bez wpisanego planu ma plan równy sumie swoich pozycji.
 - **3.6** – czytelny opis kategorii bez planu i „ponad plan o …”; przycisk „Ustaw plan = wydane + zaplanowane”.
