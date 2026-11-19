@@ -333,7 +333,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 const APP_DATE = '2026-11-18';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -343,6 +343,7 @@ const fmtDate = d => { const [y, m, dd] = String(d).split('-').map(Number); retu
 const THEME_ICON = {auto:'🌓', light:'☀️', dark:'🌙'};
 const THEME_LABEL = {auto:'Auto', light:'Jasny', dark:'Ciemny'};
 const themePref = () => { const p = lsGet('budzet-theme'); return THEME_ICON[p] ? p : 'auto'; };
+const isDarkNow = () => { const p = themePref(); return p === 'dark' || (p === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
 function applyTheme() {
   const p = themePref(), r = document.documentElement;
   if (p === 'auto') delete r.dataset.theme; else r.dataset.theme = p;
@@ -586,7 +587,7 @@ function render() { renderHeader(); renderMain(); renderChrome(); }
 function renderHeader() {
   const h = $('#hdr');
   const showNav = S.settings && S.tab !== 'ustawienia' && S.tab !== 'pomoc';
-  const tb = `<button class="hbtn" data-act="theme" aria-label="Motyw: ${THEME_LABEL[themePref()]}">${THEME_ICON[themePref()]}</button>`;
+  const tb = `<button class="hbtn" data-act="theme" aria-label="${isDarkNow() ? 'Przełącz na jasny' : 'Przełącz na ciemny'}">${isDarkNow() ? '🌙' : '☀️'}</button>`;
   const html = showNav
     ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div>${tb}`
     : `<div class="htitle">${S.tab === 'pomoc' && S.settings ? 'Pomoc' : S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
@@ -743,8 +744,7 @@ function settingsHtml() {
   const d = S.draft;
   const last = lsGet('budzet-lastExport');
   const tp = themePref();
-  let h = `<h3>Wygląd</h3><div class="card"><div class="seg">${['auto','light','dark'].map(k => `<button class="${tp === k ? 'on' : ''}" data-act="settheme" data-v="${k}">${THEME_ICON[k]} ${THEME_LABEL[k]}</button>`).join('')}</div></div>`;
-  h += `<h3>Kopia i raport</h3><div class="card">
+  let h = `<h3>Kopia i raport</h3><div class="card">
     <p class="sub" style="margin-top:0">Dane są zapisane tylko w tym telefonie. Raport to jeden plik: otworzysz go na komputerze w przeglądarce (podgląd całego budżetu), a w razie zmiany telefonu wczytasz go tu jako kopię.</p>
     <p class="sub">Ostatni raport: <b>${last ? esc(dateTimeLabel(Number(last))) : 'jeszcze nie wysłano'}</b></p>
     <button class="btn" data-act="report">📤 Wyślij raport (mail)</button>
@@ -766,8 +766,11 @@ function settingsHtml() {
   h += `<div class="chips" style="margin-top:10px"><button class="chip" data-act="cadd">+ Dodaj kategorię</button><button class="chip" data-act="cautoicons">🪄 Dopasuj ikony do nazw</button></div>
     <p class="sub">Ikona dobiera się sama po wpisaniu nazwy (np. Paliwo ⛽, Ubezpieczenie 🛡️). Stuknij ikonę, żeby wybrać inną.</p></div>`;
   h += `<button class="btn" data-act="ssave">${S.draftDirty ? 'Zapisz zmiany •' : 'Zapisz zmiany'}</button>`;
-  h += `<h3>Bezpieczeństwo</h3><div class="card"><button class="btn sec" style="margin-top:0" data-act="pinchange">🔒 Zmień PIN</button>
-    <p class="sub">Aplikacja blokuje się przy każdym uruchomieniu i po minucie w tle.</p></div>`;
+  h += pinRec()
+    ? `<h3>Bezpieczeństwo</h3><div class="card"><div class="row2" style="margin-top:-10px"><button class="btn sec" data-act="pinchange">🔒 Zmień PIN</button><button class="btn danger" data-act="pinoff">🔓 Wyłącz PIN</button></div>
+       <p class="sub">PIN włączony – aplikacja blokuje się przy każdym uruchomieniu i po minucie w tle.</p></div>`
+    : `<h3>Bezpieczeństwo</h3><div class="card"><button class="btn" style="margin-top:0" data-act="pinon">🔒 Włącz PIN</button>
+       <p class="sub">PIN wyłączony – aplikacja otwiera się bez blokady.</p></div>`;
   h += `<p class="sub center" style="margin-top:14px">Wersja ${APP_VERSION} · aktualizacja w zakładce <b>❓ Pomoc</b></p>`;
   h += `<div class="card" style="margin-top:22px"><b>Jak to działa</b>
     <p class="sub">Na początku miesiąca wpisujesz, ile pieniędzy jest na każdym koncie, i rozdzielasz je na kategorie, aż „Do rozdysponowania” pokaże 0 zł. Każdy wydatek (przycisk +) zmniejsza kategorię i konto naraz. Zaplanowane płatności (czerwone) są od razu odliczone – po zapłaceniu stuknij „✓ Zapłacone”.</p></div>`;
@@ -841,8 +844,8 @@ function helpHtml() {
       <li><b>📊 Excel</b> – plik z podsumowaniem miesiąca i listą operacji (zaplanowane na czerwono).</li>
       <li>Dane są tylko w telefonie – wysyłaj raport regularnie (aplikacja przypomni po 14 dniach).</li></ul>`)
   + sec('🔒 PIN', `<ul>
-      <li>Aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
-      <li>Zmiana: <b>Ustawienia → Zmień PIN</b>.</li>
+      <li>Gdy PIN jest włączony, aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
+      <li>Zmiana: <b>Ustawienia → Zmień PIN</b>. Wyłączenie: <b>Ustawienia → Wyłącz PIN</b> (potwierdzasz obecnym PIN-em). Ponowne włączenie: <b>Włącz PIN</b>.</li>
       <li>Zapomniany PIN: na ekranie blokady <b>Nie pamiętam PIN-u</b> – usuwa dane z telefonu, potem wczytujesz ostatni raport.</li></ul>`)
   + (REPORT ? '' : sec('⬇️ Aktualizacja', `<div class="card" style="margin:0 0 12px">${updateHtml()}</div><p>Gdy jest nowsza wersja, na zakładce Pomoc pojawia się czerwona kropka. Stuknij <b>Aktualizuj</b> – kwoty, ustawienia i PIN zostają bez zmian.</p>`, !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION))))
   + `<p class="sub center" style="margin:16px 0">Budżet domowy · wersja ${APP_VERSION}</p>`;
@@ -1135,6 +1138,7 @@ async function importFile(file) {
 
 /* ---------- PIN ---------- */
 const PIN_KEY = 'budzet-pin';
+const PIN_OFF = 'budzet-pin-off';
 const L = {mode:null, step:0, buf:'', first:'', fails:0, until:0, busy:false, onOk:null, info:''};
 const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -1153,7 +1157,7 @@ const lockVerifying = () => L.mode === 'unlock' || L.mode === 'confirm' || (L.mo
 const lockNewStep = () => (L.mode === 'setup' && L.step === 0) || (L.mode === 'change' && L.step === 1);
 function lockOpen(mode, opts) {
   L.mode = mode; L.step = 0; L.buf = ''; L.first = '';
-  L.onOk = (opts && opts.onOk) || null; L.info = (opts && opts.info) || '';
+  L.onOk = (opts && opts.onOk) || null; L.info = (opts && opts.info) || ''; L.cancellable = !!(opts && opts.cancellable); L.firstRun = !!(opts && opts.firstRun);
   closeSheet(); $('#dlg').classList.remove('open');
   document.body.classList.add('locked'); $('#lock').classList.remove('hidden'); lockDraw();
 }
@@ -1169,7 +1173,8 @@ function lockDraw(msg) {
   $('#lockMsg').textContent = msg || '';
   $('#padOk').classList.toggle('inv', !lockNewStep());
   $('#lockForgot').classList.toggle('hidden', m !== 'unlock');
-  $('#lockCancel').classList.toggle('hidden', m !== 'change' && m !== 'confirm');
+  $('#lockCancel').classList.toggle('hidden', m !== 'change' && m !== 'confirm' && !L.cancellable);
+  $('#lockCancel').textContent = (m === 'setup' && L.firstRun) ? 'Bez PIN-u' : 'Anuluj';
 }
 function lockShake() { const b = $('#lockbox'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
 async function lockKey(k) {
@@ -1201,7 +1206,8 @@ async function lockSubmit() {
   L.busy = true;
   try { await pinSave(pin); } catch (e) { L.busy = false; lockDraw('Nie udało się zapisać PIN-u'); return; }
   L.busy = false;
-  const change = L.mode === 'change'; lockClose(); toast(change ? 'PIN zmieniony' : 'PIN ustawiony');
+  const change = L.mode === 'change'; L.cancellable = false; try { localStorage.removeItem(PIN_OFF); } catch (e) {}
+  lockClose(); toast(change ? 'PIN zmieniony' : 'PIN ustawiony'); if (S.tab === 'ustawienia') renderMain(true);
 }
 $('#pad').addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-k]'); if (!b) return;
@@ -1215,11 +1221,14 @@ document.addEventListener('keydown', e => {
   if (!L.mode) return;
   if (/^[0-9]$/.test(e.key)) lockKey(e.key); else if (e.key === 'Backspace') lockKey('del'); else if (e.key === 'Enter') lockKey('ok');
 });
-$('#lockCancel').addEventListener('click', () => { if (L.mode === 'change' || L.mode === 'confirm') lockClose(); });
+$('#lockCancel').addEventListener('click', () => {
+  if (L.mode === 'setup' && L.cancellable && !pinRec()) lsSet(PIN_OFF, '1');
+  if (L.mode === 'change' || L.mode === 'confirm' || L.cancellable) { L.cancellable = false; lockClose(); }
+});
 $('#lockForgot').addEventListener('click', async () => {
   if (!(await ask('Bez PIN-u nie da się odblokować aplikacji. Możesz usunąć wszystkie dane z tego telefonu, ustawić nowy PIN i wczytać ostatni raport (przycisk „Mam już kopię”). Usunąć dane?', 'Usuń dane'))) return;
   if (!(await ask('Na pewno? Tego nie można cofnąć.', 'Tak, usuń wszystko'))) return;
-  ['budzet-domowy-v1', PIN_KEY, 'budzet-lastExport', 'budzet-lastWallet'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  ['budzet-domowy-v1', PIN_KEY, PIN_OFF, 'budzet-lastExport', 'budzet-lastWallet'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
   location.reload();
 });
 let hiddenAt = 0;
@@ -1246,9 +1255,13 @@ document.addEventListener('click', async e => {
     case 'mprev': setMonth(shiftMonth(S.month, -1)); break;
     case 'mnext': setMonth(shiftMonth(S.month, 1)); break;
     case 'mtoday': setMonth(REPORT ? (REPORT.month || CUR) : CUR); break;
-    case 'theme': { const order = ['auto','light','dark']; lsSet('budzet-theme', order[(order.indexOf(themePref()) + 1) % 3]); applyTheme(); toast('Motyw: ' + THEME_LABEL[themePref()]); render(); if (S.tab === 'ustawienia') renderMain(true); break; }
+    case 'theme': { lsSet('budzet-theme', isDarkNow() ? 'light' : 'dark'); applyTheme(); render(); if (S.tab === 'ustawienia') renderMain(true); break; }
     case 'settheme': lsSet('budzet-theme', ds.v); applyTheme(); render(); renderMain(true); break;
     case 'pinchange': lockOpen('change'); break;
+    case 'pinoff':
+      lockOpen('confirm', {info:'Wyłączenie PIN-u', onOk:() => { try { localStorage.removeItem(PIN_KEY); } catch (e) {} lsSet(PIN_OFF, '1'); toast('PIN wyłączony'); renderMain(true); }});
+      break;
+    case 'pinon': lockOpen('setup', {cancellable:true}); break;
     case 'updcheck': checkUpdate(); break;
     case 'clearmonth': {
       const m = S.month, n = S.tx.length;
@@ -1531,7 +1544,9 @@ subAll(); render();
 ensureAhead();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureAhead(); });
 if (REPORT || !pinSupported()) { $('#lock').classList.add('hidden'); document.body.classList.remove('locked'); }
-else lockOpen(pinRec() ? 'unlock' : 'setup');
+else if (pinRec()) lockOpen('unlock');
+else if (lsGet(PIN_OFF) === '1') { $('#lock').classList.add('hidden'); document.body.classList.remove('locked'); }
+else lockOpen('setup', {cancellable:true, firstRun:true});
 
 if (!REPORT && location.protocol.startsWith('http')) {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

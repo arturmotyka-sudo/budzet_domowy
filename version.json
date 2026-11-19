@@ -1,9 +1,9 @@
 {
-  "version": "3.3",
-  "date": "2026-11-18",
+  "version": "3.4",
+  "date": "2026-11-19",
   "changes": [
-    "„Wydane” pokazuje tylko to, co naprawdę zapłacone",
-    "Zaplanowane płatności osobno: „🕒 Zaplanowane (do zapłaty)”",
-    "Pasek kategorii: zapłacone pełne, zaplanowane kreskowane"
+    "Przełącznik motywu na górze: tylko jasny / ciemny",
+    "Usunięty wybór motywu z Ustawień",
+    "Możliwość wyłączenia i ponownego włączenia PIN-u w Ustawieniach"
   ]
 }
