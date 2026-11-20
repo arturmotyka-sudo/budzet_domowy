@@ -1,9 +1,9 @@
 {
-  "version": "4.7",
+  "version": "4.8",
   "date": "2026-11-20",
   "changes": [
-    "Stonowany czerwony kolor kwot i oznaczeń – bez pomarańczowego odcienia",
-    "Kafelek konta: szybka korekta stanu – wpisz kwotę i stuknij „− Odejmij” albo „+ Dodaj”",
-    "W polach kwot można wpisać działanie, np. 185,09-9,20"
+    "Gdy brakuje pieniędzy: przycisk „✂️ Zdejmij z zaplanowanej kwoty” – wybierasz płatność albo limit, z którego zdjąć brakującą kwotę",
+    "Komunikat pod bilansem bez tła – sam kolorowy tekst",
+    "Nowy wydatek: wybór „Zdejmij z zaplanowanej kwoty” – wydatek zmniejsza wybraną zaplanowaną płatność (np. odłożenie), bilans się nie zmienia"
   ]
 }
