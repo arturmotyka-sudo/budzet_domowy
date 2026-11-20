@@ -9,9 +9,9 @@
 <link rel="icon" href="coin-192.png">
 <link rel="apple-touch-icon" href="coin-192.png">
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#c0392b;--badbg:#fbe8e5;--ok:#2f6f5e}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef8174;--badbg:#321d1b;--ok:#6cc2a6}}
-:root[data-theme=dark]{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef8174;--badbg:#321d1b;--ok:#6cc2a6}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#e8302a;--badbg:#fde9e7;--ok:#2f6f5e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ff5a4f;--badbg:#3a1c19;--ok:#6cc2a6}}
+:root[data-theme=dark]{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ff5a4f;--badbg:#3a1c19;--ok:#6cc2a6}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -142,7 +142,11 @@ p.sub{margin:6px 0}
 .hero.bad .k{color:var(--bad)}
 .hero.warn .status{background:var(--vividbg);color:var(--vivid)}
 nav.tabs button{position:relative}
-nav.tabs button.upd::after{content:'';position:absolute;top:6px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
+nav.tabs button.upd::after{content:'';position:absolute;top:4px;left:calc(50% + 8px);width:12px;height:12px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
+.ubadge{margin-left:auto;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.ubadge.new{background:var(--bad);color:#fff}
+.ubadge.ok{background:var(--acc2);color:var(--ok)}
+.ubadge.chk{background:var(--line);color:var(--mute)}
 .hint.center{text-align:center}
 .hbtn{position:absolute;right:14px;top:50%;transform:translateY(-35%);border:1px solid var(--line);background:var(--card);width:38px;height:38px;border-radius:50%;font-size:17px;line-height:1}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--badbg);color:var(--bad);margin-left:6px;vertical-align:1px}
@@ -354,8 +358,8 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.5';
-const APP_DATE = '2026-11-18';
+const APP_VERSION = '4.6';
+const APP_DATE = '2026-11-20';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 const fmtDate = d => { const [y, m, dd] = String(d).split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL'); };
@@ -943,7 +947,7 @@ function helpHtml() {
       <li><b>Przesuń pozycję palcem w lewo</b> – pojawi się czerwony przycisk <b>🗑 Usuń</b>. Usuwa od razu, bez pytań – przez kilka sekund na dole jest <b>Cofnij</b>. W Wydatkach z limitem usuwa limit (wydatki przechodzą do Płatności).</li>
       <li><b>Przesuń zaplanowaną pozycję palcem w prawo</b> – pojawi się niebieski przycisk <b>📅 Przenieś</b>: wybierasz następny miesiąc, za 2 lub 3 miesiące albo za rok.</li>
       <li>Przesunięcie usuwa/przenosi tylko tę jedną pozycję. Żeby usunąć powtarzanie, stuknij pozycję i użyj ikony <b>🗑</b> obok ✕ – wtedy wybierasz: tylko tę albo też przyszłe.</li></ul>`)
-  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p>`)
+  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
@@ -956,7 +960,7 @@ function helpHtml() {
       <li>Gdy PIN jest włączony, aplikacja blokuje się przy każdym otwarciu i po minucie w tle.</li>
       <li>Zmiana: <b>Ustawienia → Zmień PIN</b>. Wyłączenie: <b>Ustawienia → Wyłącz PIN</b> (potwierdzasz obecnym PIN-em). Ponowne włączenie: <b>Włącz PIN</b>.</li>
       <li>Zapomniany PIN: na ekranie blokady <b>Nie pamiętam PIN-u</b> – usuwa dane z telefonu, potem wczytujesz ostatni raport.</li></ul>`)
-  + (REPORT ? '' : sec('⬇️ Aktualizacja', `<div class="card" style="margin:0 0 12px">${updateHtml()}</div><p>Gdy jest nowsza wersja, na zakładce Pomoc pojawia się czerwona kropka. Stuknij <b>Aktualizuj</b> – kwoty, ustawienia i PIN zostają bez zmian.</p>`, !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION))))
+  + (REPORT ? '' : sec('⬇️ Aktualizacja' + (!S.remote ? '<span class="ubadge chk">sprawdzam…</span>' : S.remote.error ? '' : verNewer(S.remote.version, APP_VERSION) ? `<span class="ubadge new">● Nowa wersja ${esc(S.remote.version)}</span>` : '<span class="ubadge ok">✓ aktualna</span>'), `<div class="card" style="margin:0 0 12px">${updateHtml()}</div><p>Gdy jest nowsza wersja, na zakładce Pomoc pojawia się czerwona kropka. Stuknij <b>Aktualizuj</b> – kwoty, ustawienia i PIN zostają bez zmian.</p>`, !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION))))
   + `<p class="sub center" style="margin:16px 0">Budżet domowy · wersja ${APP_VERSION}</p>`;
 }
 
@@ -1047,6 +1051,12 @@ function updatePlanHint() {
 }
 
 /* wallet sheet */
+/* operacje danego konta w tym miesiącu – stuknięcie otwiera edycję */
+function walletOpsHtml(id) {
+  const ops = S.tx.filter(t => t.wallet === id || t.to === id).sort((x, y) => (y.d || '').localeCompare(x.d || '') || (y.ts || 0) - (x.ts || 0));
+  if (!ops.length) return `<p class="sub center" style="margin-top:16px">Brak operacji na tym koncie w: ${esc(monthLabel(S.month))}.</p>`;
+  return `<label class="f">Operacje w: ${esc(monthLabel(S.month))} (${ops.length}) – stuknij, żeby poprawić</label><div class="card list" style="margin-top:0">${ops.map(t => txRow(t, true)).join('')}</div>`;
+}
 function openWallet(id) {
   const c = calc(), w = c.W[id], mi = monthInfo(S.month);
   const carried = mi && mi.carry ? (mi.carried[id] || 0) : null;
@@ -1060,7 +1070,8 @@ function openWallet(id) {
     <div class="kv"><span>Wpływy</span><b class="pos">+${zl(w.inc - w.pinc)}</b></div><div class="kv"><span>Wydatki</span><b>−${zl(w.spent - w.pexp)}</b></div><div class="kv"><span>Przelewy</span><b>${transfers >= 0 ? '+' : '−'}${zl(Math.abs(transfers))}</b></div>
     ${w.pin ? `<div class="kv"><span>🕒 Spodziewane wpływy</span><b class="pos">+${zl(w.pin)}</b></div>` : ''}${w.pout ? `<div class="kv"><span>🕒 Zaplanowane płatności</span><b class="neg">−${zl(w.pout)}</b></div>` : ''}</div>
     ${S.readOnly ? '' : `<button class="btn" data-act="wsave">Zapisz środki na start</button>
-    <div class="row2"><button class="btn sec" data-act="addtx" data-type="wplyw" data-wallet="${esc(id)}">+ Wpływ</button><button class="btn sec" data-act="addtx" data-type="przelew" data-wallet="${esc(id)}">🔁 Przelew</button></div>`}`,
+    <div class="row2" style="grid-template-columns:1fr 1fr 1fr"><button class="btn sec" data-act="addtx" data-type="wydatek" data-wallet="${esc(id)}">− Wydatek</button><button class="btn sec" data-act="addtx" data-type="wplyw" data-wallet="${esc(id)}">+ Wpływ</button><button class="btn sec" data-act="addtx" data-type="przelew" data-wallet="${esc(id)}">🔁 Przelew</button></div>`}
+    ${walletOpsHtml(id)}`,
     {kind:'wallet', id, carried});
 }
 
@@ -1899,7 +1910,11 @@ if (!REPORT && location.protocol.startsWith('http')) {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
   setTimeout(() => loadXlsx().catch(() => {}), 3000);
-  setTimeout(() => { if (navigator.onLine !== false) checkUpdate(); }, 5000);
+  let lastUpdCheck = 0;
+  const autoCheck = () => { if (navigator.onLine !== false && Date.now() - lastUpdCheck > 30 * 60e3) { lastUpdCheck = Date.now(); checkUpdate(); } };
+  setTimeout(autoCheck, 5000);
+  // także po powrocie do aplikacji (najwyżej co 30 minut)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoCheck(); });
 }
 </script>
 </body>

@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **4.6** – żywszy czerwony kolor kwot i oznaczeń; przy „Aktualizacja” w Pomocy widać bez rozwijania, czy jest nowa wersja; sprawdzanie aktualizacji także po powrocie do aplikacji; w kafelku konta lista jego operacji do poprawiania i przycisk „− Wydatek”.
 - **4.5** – przypomnienie o kopii (raporcie) po 7 dniach zamiast 14.
 - **4.4** – przesunięcie w lewo usuwa od razu (z „Cofnij”), przesunięcie zaplanowanej pozycji w prawo przenosi ją na kolejny miesiąc / za 2–3 miesiące / za rok; nowa ikona – złota moneta z symbolem $.
 - **4.3** – polecanie aplikacji: link z instrukcją mailem, komunikatorem lub do skopiowania.

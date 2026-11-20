@@ -1,7 +1,10 @@
 {
-  "version": "4.5",
-  "date": "2026-11-19",
+  "version": "4.6",
+  "date": "2026-11-20",
   "changes": [
-    "Przypomnienie o wysłaniu raportu (kopii) już po 7 dniach"
+    "Żywszy czerwony kolor kwot i oznaczeń",
+    "W Pomocy przy „Aktualizacja” od razu widać, czy jest nowa wersja – bez rozwijania",
+    "Aplikacja sprawdza aktualizację także po powrocie do niej (najwyżej co 30 minut)",
+    "Kafelek konta: lista operacji z tego konta (stuknij, żeby poprawić) i przycisk „− Wydatek”"
   ]
 }
