@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **4.9** – zmiana miesiąca przeciągnięciem palca po bilansie lub kontach (w lewo – następny, w prawo – poprzedni).
 - **4.8** – przy „Brakuje …” przycisk „✂️ Zdejmij z zaplanowanej kwoty” (wybierasz płatność albo limit, z którego zdjąć brakującą kwotę, z „Cofnij”); komunikat pod bilansem bez tła; przy nowym wydatku wybór „Zdejmij z zaplanowanej kwoty”.
 - **4.7** – stonowany czerwony (bez pomarańczowego odcienia); szybka korekta stanu konta („− Odejmij” / „+ Dodaj”); w polach kwot można wpisać działanie, np. 185,09-9,20.
 - **4.6** – żywszy czerwony kolor kwot i oznaczeń; przy „Aktualizacja” w Pomocy widać bez rozwijania, czy jest nowa wersja; sprawdzanie aktualizacji także po powrocie do aplikacji; w kafelku konta lista jego operacji do poprawiania i przycisk „− Wydatek”.
