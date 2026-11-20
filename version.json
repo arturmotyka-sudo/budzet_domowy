@@ -1,10 +1,9 @@
 {
-  "version": "4.6",
+  "version": "4.7",
   "date": "2026-11-20",
   "changes": [
-    "Żywszy czerwony kolor kwot i oznaczeń",
-    "W Pomocy przy „Aktualizacja” od razu widać, czy jest nowa wersja – bez rozwijania",
-    "Aplikacja sprawdza aktualizację także po powrocie do niej (najwyżej co 30 minut)",
-    "Kafelek konta: lista operacji z tego konta (stuknij, żeby poprawić) i przycisk „− Wydatek”"
+    "Stonowany czerwony kolor kwot i oznaczeń – bez pomarańczowego odcienia",
+    "Kafelek konta: szybka korekta stanu – wpisz kwotę i stuknij „− Odejmij” albo „+ Dodaj”",
+    "W polach kwot można wpisać działanie, np. 185,09-9,20"
   ]
 }

@@ -9,9 +9,9 @@
 <link rel="icon" href="coin-192.png">
 <link rel="apple-touch-icon" href="coin-192.png">
 <style>
-:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#e8302a;--badbg:#fde9e7;--ok:#2f6f5e}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ff5a4f;--badbg:#3a1c19;--ok:#6cc2a6}}
-:root[data-theme=dark]{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ff5a4f;--badbg:#3a1c19;--ok:#6cc2a6}
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#c62828;--badbg:#fbeaea;--ok:#2f6f5e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef6b6b;--badbg:#3a1d1f;--ok:#6cc2a6}}
+:root[data-theme=dark]{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef6b6b;--badbg:#3a1d1f;--ok:#6cc2a6}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -244,7 +244,12 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const NF = new Intl.NumberFormat('pl-PL', {style:'currency', currency:'PLN'});
 // zawsze z odstępem tysięcy: 1 000,00 zł (polski standard Intl pomija odstęp przy 4 cyfrach)
 const zl = g => { const v = Math.round(g || 0); const neg = v < 0; const a = Math.abs(v); const i = String(Math.floor(a / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0'); return (neg ? '-' : '') + i + ',' + String(a % 100).padStart(2, '0') + '\u00a0zł'; };
-const parseZl = s => { s = String(s ?? '').replace(/\s/g,'').replace(',', '.'); if (s === '') return 0; const v = Number(s); return isFinite(v) ? Math.round(v * 100) : NaN; };
+// kwota albo proste działanie, np. „185,09-9,20” albo „100+25,5”
+const parseZl = s => {
+  s = String(s ?? '').replace(/\s/g, '').replace(/,/g, '.').replace(/[−–]/g, '-'); if (s === '') return 0;
+  if (!/^-?\d*\.?\d+([+-]\d*\.?\d+)*$/.test(s)) { const v = Number(s); return isFinite(v) ? Math.round(v * 100) : NaN; }
+  return (s.match(/[+-]?\d*\.?\d+/g) || []).reduce((sum, p) => sum + Math.round(Number(p) * 100), 0);
+};
 const toInput = g => g ? (g / 100).toFixed(2).replace('.', ',') : '';
 const uid = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
 const pad = n => String(n).padStart(2, '0');
@@ -358,7 +363,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.6';
+const APP_VERSION = '4.7';
 const APP_DATE = '2026-11-20';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -947,7 +952,7 @@ function helpHtml() {
       <li><b>Przesuń pozycję palcem w lewo</b> – pojawi się czerwony przycisk <b>🗑 Usuń</b>. Usuwa od razu, bez pytań – przez kilka sekund na dole jest <b>Cofnij</b>. W Wydatkach z limitem usuwa limit (wydatki przechodzą do Płatności).</li>
       <li><b>Przesuń zaplanowaną pozycję palcem w prawo</b> – pojawi się niebieski przycisk <b>📅 Przenieś</b>: wybierasz następny miesiąc, za 2 lub 3 miesiące albo za rok.</li>
       <li>Przesunięcie usuwa/przenosi tylko tę jedną pozycję. Żeby usunąć powtarzanie, stuknij pozycję i użyj ikony <b>🗑</b> obok ✕ – wtedy wybierasz: tylko tę albo też przyszłe.</li></ul>`)
-  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p>`)
+  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p><p><b>Korekta stanu konta</b> (gdy w banku jest inna kwota niż w aplikacji): w kafelku konta wpisz w polu „o ile” np. 9,20 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b> – zapisze się od razu. Nie koryguj w ten sposób kwoty, którą już wpisałeś jako wydatek – odjęłaby się dwa razy. W każdym polu kwoty możesz też wpisać działanie, np. <b>185,09-9,20</b>.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
@@ -1066,6 +1071,7 @@ function openWallet(id) {
     ${S.readOnly ? `<div class="card">${carried !== null ? `<div class="kv"><span>Przeniesione z: ${esc(monthLabel(mi.prev))}</span><b>${zl(carried)}</b></div>` : ''}<div class="kv"><span>Na start miesiąca</span><b>${zl(w.start)}</b></div>` : `
     <label class="f">Środki na start miesiąca${carried !== null ? ` (przeniesione z: ${esc(monthLabel(mi.prev))}: ${zl(carried)})` : ''}</label>
     <input class="amt" id="wstart" inputmode="decimal" placeholder="0,00" value="${toInput(w.start)}">
+    <div class="row2" style="grid-template-columns:1fr auto auto;align-items:center;margin-top:8px"><input id="wdelta" inputmode="decimal" placeholder="o ile, np. 9,20"><button class="btn sec" style="margin:0;padding:12px 14px" data-act="wadj" data-v="-1">− Odejmij</button><button class="btn sec" style="margin:0;padding:12px 14px" data-act="wadj" data-v="1">+ Dodaj</button></div>
     ${carried !== null ? `<span class="hint">Przenosi się automatycznie. Zmień tylko, gdy stan w banku jest inny – różnica zapisze się jako korekta${w.start !== carried ? ` (teraz: ${w.start - carried > 0 ? '+' : '−'}${zl(Math.abs(w.start - carried))})` : ''}.</span>` : ''}<div class="card">`}
     <div class="kv"><span>Wpływy</span><b class="pos">+${zl(w.inc - w.pinc)}</b></div><div class="kv"><span>Wydatki</span><b>−${zl(w.spent - w.pexp)}</b></div><div class="kv"><span>Przelewy</span><b>${transfers >= 0 ? '+' : '−'}${zl(Math.abs(transfers))}</b></div>
     ${w.pin ? `<div class="kv"><span>🕒 Spodziewane wpływy</span><b class="pos">+${zl(w.pin)}</b></div>` : ''}${w.pout ? `<div class="kv"><span>🕒 Zaplanowane płatności</span><b class="neg">−${zl(w.pout)}</b></div>` : ''}</div>
@@ -1673,6 +1679,15 @@ document.addEventListener('click', async e => {
 
     case 'catemo': { const c = catById(ds.id); if (c) openEmoPicker(c.name, c.emoji, {kind:'emo', direct:ds.id}); break; }
     case 'wallet': openWallet(ds.id); break;
+    case 'wadj': {
+      const d = parseZl($('#wdelta').value), cur = parseZl($('#wstart').value);
+      if (isNaN(d) || d <= 0) { toast('Wpisz kwotę, o którą zmienić stan'); return; }
+      if (isNaN(cur)) { toast('Popraw kwotę środków na start'); return; }
+      const nv = cur + Number(ds.v) * d;
+      $('#wstart').value = nv === 0 ? '0,00' : toInput(nv);
+      $('[data-act="wsave"]').click();
+      break;
+    }
     case 'wsave': {
       const v = parseZl($('#wstart').value); if (isNaN(v)) { toast('Wpisz poprawną kwotę'); return; }
       const md = clone(S.monthDoc), w = S.sheet.id, carried = S.sheet.carried;
