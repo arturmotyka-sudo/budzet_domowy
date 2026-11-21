@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **5.1** – sekcje na ekranie Budżet oddzielone kolorowymi liniami (jak w aplikacji Najem); nowa sekcja 📊 Statystyki (podział środków, najwięcej wydane, słupki miesięcy roku); w Historii dni oddzielone liniami.
 - **5.0** – w edycji pozycji (zaplanowane płatności, wpływy, wydatki) i w limicie kategorii pole „zmień o” z przyciskami „− Odejmij” / „+ Dodaj”.
 - **4.9** – zmiana miesiąca przeciągnięciem palca po bilansie lub kontach (w lewo – następny, w prawo – poprzedni).
 - **4.8** – przy „Brakuje …” przycisk „✂️ Zdejmij z zaplanowanej kwoty” (wybierasz płatność albo limit, z którego zdjąć brakującą kwotę, z „Cofnij”); komunikat pod bilansem bez tła; przy nowym wydatku wybór „Zdejmij z zaplanowanej kwoty”.

@@ -1,7 +1,9 @@
 {
-  "version": "5.0",
+  "version": "5.1",
   "date": "2026-11-21",
   "changes": [
-    "Zmiana kwoty bez kalkulatora: w edycji pozycji i w limicie kategorii wpisz „o ile” i stuknij „− Odejmij” albo „+ Dodaj”"
+    "Sekcje na ekranie Budżet oddzielone kolorowymi liniami",
+    "Nowa sekcja 📊 Statystyki: na co idą środki, najwięcej wydane kategorie i słupki wydatków w kolejnych miesiącach roku",
+    "W Historii poszczególne dni oddzielone liniami"
   ]
 }

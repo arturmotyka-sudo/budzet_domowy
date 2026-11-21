@@ -90,7 +90,38 @@ input.amt{font-size:30px;font-weight:700;text-align:center;padding:12px;font-var
 .tx:last-child{border-bottom:0}
 .tx .emo{width:36px;height:36px;font-size:17px}
 .tx .amtv{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
-.dhead{font-size:12px;color:var(--mute);margin:16px 4px 4px}
+.dhead{display:flex;align-items:center;gap:10px;margin:22px 2px 6px;color:var(--acc);font-size:13px;font-weight:700;letter-spacing:.02em}
+.dhead::before,.dhead::after{content:'';flex:1;height:2px;background:var(--acc);opacity:.35;border-radius:1px}
+.dhead::before{flex:0 0 14px}
+:root{--c-acc:#2f6f5e;--c-stat:#2a78d6;--c-inc:#1baf7a;--c-pay:#c62828;--c-lim:#6250d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--c-acc:#6cc2a6;--c-stat:#3987e5;--c-inc:#199e70;--c-pay:#ef6b6b;--c-lim:#9085e9}}
+:root[data-theme=dark]{--c-acc:#6cc2a6;--c-stat:#3987e5;--c-inc:#199e70;--c-pay:#ef6b6b;--c-lim:#9085e9}
+.sep{display:flex;align-items:center;gap:10px;margin:22px 2px 6px;color:var(--sc);font-size:13px;font-weight:700;letter-spacing:.02em}
+.sep::before{content:'';flex:0 0 14px;height:2px;background:var(--sc);opacity:.6;border-radius:1px}
+.sep i{flex:1;min-width:12px;height:2px;background:var(--sc);opacity:.6;border-radius:1px}
+.sep .sr{color:var(--ink);font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sbar{display:flex;gap:2px;height:14px;margin:2px 0 10px}
+.sbar i{display:block;min-width:3px;border-radius:4px}
+.leg{display:grid;gap:2px}
+.lrow{display:grid;grid-template-columns:14px 1fr auto 42px;gap:8px;align-items:center;font-size:14px;padding:3px 0;font-variant-numeric:tabular-nums}
+.lrow .sub{text-align:right}
+.lrow:first-child{border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:2px}
+.swc{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px}
+.swc.inc{height:3px;vertical-align:3px;background:var(--c-inc)}
+.trow{display:grid;grid-template-columns:minmax(0,1fr) 32% 6.6em;gap:8px;align-items:center;font-size:13px;padding:3px 0;font-variant-numeric:tabular-nums}
+.trow>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow b{font-weight:600;white-space:nowrap;text-align:right}.trow small{color:var(--mute);font-weight:400;font-size:11px}
+.tbar{position:relative;height:8px;background:var(--line);border-radius:4px}
+.tbar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.tbar em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.5;margin-left:-1px}
+.cols{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.col{position:relative;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;height:110px;gap:4px;min-width:0}
+.col .stk{display:flex;flex-direction:column-reverse;gap:2px;border-radius:4px 4px 0 0;overflow:hidden;min-height:0;border-bottom:1px solid var(--mute)}
+.col .stk i{display:block;min-height:2px}
+.col .incm{position:absolute;left:10%;right:10%;height:3px;border-radius:2px;background:var(--c-inc)}
+.col .ml{font-size:10px;color:var(--mute);text-align:center;white-space:nowrap;overflow:hidden;height:14px}
+.col.dim .stk{opacity:.35}
+.col.on .ml{color:var(--ink);font-weight:700}
 .srow{display:grid;grid-template-columns:54px 1fr 40px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .srow:last-of-type{border-bottom:0}
 .srow.w{grid-template-columns:1fr 40px}
@@ -366,7 +397,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 const APP_DATE = '2026-11-21';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -704,15 +735,16 @@ function budgetHtml() {
   const isLimit = id => !!(c.C[id] && c.C[id].manual);
   const actBtn = t => S.readOnly ? '' : t.planned ? `<button class="paybtn" data-act="paid" data-id="${esc(t.id)}">${t.type === 'wplyw' ? '✓ Wpłynęło' : '✓ Zapłacone'}</button>` : `<span class="paybtn" style="border:0;background:none;color:var(--ok)">✓</span>`;
   const row = t => swWrap(`<div class="plrow">${txRow(t, true, true)}${actBtn(t)}</div>`, 'swdel', t.id, t.planned ? 'swmov' : null);
-  h += `<h3 class="mzone">Na kontach <span>${zl(c.actualTotal)}</span></h3><div class="wallets">`;
+  h += sep('🏦 Na kontach', zl(c.actualTotal), 'var(--c-acc)', 'mzone') + `<div class="wallets">`;
   for (const w of walletList(c)) { const x = c.W[w.id]; h += `<button class="wallet ${balCls(x.actual)}-w" data-act="wallet" data-id="${esc(w.id)}"><span class="sub">${esc(w.name)}</span><b class="${balCls(x.actual)}">${zl(x.actual)}</b>${x.bal !== x.actual ? `<span class="sub">po zaplanowanych: <b class="${balCls(x.bal)}" style="font-size:inherit">${zl(x.bal)}</b></span>` : ''}</button>`; }
   h += `</div>`;
+  h += statsHtml(c);
   // 💵 Wpływy: spodziewane i otrzymane
   const inc = S.tx.filter(t => t.type === 'wplyw');
   if (inc.length) {
     const exp = inc.filter(t => t.planned).sort(byDate), got = inc.filter(t => !t.planned).sort(byDate);
     const sum = l => l.reduce((x, t) => x + t.amount, 0);
-    h += `<h3>💵 Wpływy<span class="pos">+${zl(sum(inc))}</span></h3><div class="card list">${exp.map(row).join('')}${got.map(row).join('')}</div>`;
+    h += sep('💵 Wpływy', `<span class="pos">+${zl(sum(inc))}</span>`, 'var(--c-inc)') + `<div class="card list">${exp.map(row).join('')}${got.map(row).join('')}</div>`;
     if (exp.length && got.length) h += `<div class="sub" style="margin:4px 4px 0">🕒 spodziewane ${zl(sum(exp))} · ✓ otrzymane ${zl(sum(got))}</div>`;
   }
   // 🧾 Płatności – znane kwoty: wszystkie zaplanowane + zapłacone z kategorii bez limitu
@@ -720,21 +752,56 @@ function budgetHtml() {
   if (pays.length) {
     const todo = pays.filter(t => t.planned).sort(byDate), done = pays.filter(t => !t.planned).sort(byDate);
     const sumE = l => l.filter(t => t.type === 'wydatek').reduce((x, t) => x + t.amount, 0);
-    h += `<h3>🧾 Płatności<span>${todo.length ? `<span class="neg">do zapłaty ${zl(sumE(todo))}</span>` : ''}${todo.length && done.length ? ' · ' : ''}${done.length ? `✓ ${zl(sumE(done))}` : ''}</span></h3><div class="card list">${todo.map(row).join('')}${done.map(row).join('')}</div>`;
+    h += sep('🧾 Płatności', `${todo.length ? `<span class="neg">do zapłaty ${zl(sumE(todo))}</span>` : ''}${todo.length && done.length ? ' · ' : ''}${done.length ? `✓ ${zl(sumE(done))}` : ''}`, 'var(--c-pay)') + `<div class="card list">${todo.map(row).join('')}${done.map(row).join('')}</div>`;
   }
   // 🛒 Wydatki z limitem (koperty)
   const order = Object.fromEntries(GROUPS.map(([g], i) => [g, i]));
   const lim = st.categories.filter(x => isLimit(x.id)).sort((x, y) => (order[x.group || 'zmienne'] || 0) - (order[y.group || 'zmienne'] || 0));
   const limLeft = lim.reduce((x, k) => x + c.C[k.id].plan - c.C[k.id].spent, 0);
-  h += `<h3>🛒 Wydatki z limitem${lim.length ? `<span>zostało ${zl(limLeft)}</span>` : ''}</h3>`;
+  h += sep('🛒 Wydatki z limitem', lim.length ? `zostało ${zl(limLeft)}` : '', 'var(--c-lim)');
   if (lim.length) h += `<div class="card list">${lim.map(x => swWrap(catRow(x, c.C[x.id]), 'swlim', x.id)).join('')}</div>`;
   else h += `<div class="card"><p class="sub" style="margin:0">Ustaw limit na wydatki bieżące, np. <b>Życie 2000 zł</b> – potem dopisujesz wydatki i widzisz, ile zostało.</p></div>`;
   if (!S.readOnly) h += `<button class="chip" style="margin:10px auto 0;display:block;border-style:dashed" data-act="addlimit">+ Ustaw limit dla kategorii</button>`;
   const orph = Object.entries(c.C).filter(([, v]) => v.orphan && (v.plan || v.spent));
-  if (orph.length) h += `<h3>Operacje z usuniętych kategorii</h3><div class="card list">${orph.map(([id, v]) => swWrap(catRow({id, name:'(usunięta kategoria) – stuknij, by uporządkować', emoji:'❔'}, v), 'sworph', id)).join('')}</div>`;
+  if (orph.length) h += sep('❔ Operacje z usuniętych kategorii', '', 'var(--mute)') + `<div class="card list">${orph.map(([id, v]) => swWrap(catRow({id, name:'(usunięta kategoria) – stuknij, by uporządkować', emoji:'❔'}, v), 'sworph', id)).join('')}</div>`;
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
   return h;
 }
+/* nagłówek sekcji z kolorową linią (jak w aplikacji Najem) */
+const sep = (title, right, color, cls) => `<div class="sep ${cls || ''}" style="--sc:${color}"><span>${title}</span><i></i>${right ? `<span class="sr">${right}</span>` : ''}</div>`;
+
+/* 📊 Statystyki miesiąca + słupki roku */
+function statsHtml(c) {
+  const paid = c.spent - c.plannedOut, planned = c.plannedOut;
+  const limLeft = Object.values(c.C).reduce((s, x) => s + (x.manual ? Math.max(0, x.manual - x.spent) : 0), 0);
+  const free = Math.max(0, c.toAssign);
+  const parts = [['Wydane (zapłacone)', paid, 'var(--c-stat)'], ['Do zapłaty (zaplanowane)', planned, 'var(--c-pay)'], ['Zostało w limitach', limLeft, 'var(--c-lim)'], ['Do rozdysponowania', free, 'var(--c-inc)']];
+  const whole = Math.max(c.funds, parts.reduce((s, p) => s + p[1], 0));
+  const pct = v => whole > 0 ? Math.round(v / whole * 100) + '%' : '';
+  let h = sep('📊 Statystyki', esc(cap(monthOnly(S.month))), 'var(--c-stat)');
+  h += `<div class="card">`;
+  if (!c.funds && !c.spent) return h + `<p class="sub" style="margin:0">Brak środków i wydatków w tym miesiącu.</p></div>`;
+  const vis = parts.filter(p => p[1] > 0);
+  if (vis.length) h += `<div class="sbar" role="img" aria-label="${esc(vis.map(p => p[0] + ' ' + zl(p[1])).join(', '))}">${vis.map(p => `<i style="flex:${p[1]};background:${p[2]}"></i>`).join('')}</div>`;
+  h += `<div class="leg"><div class="lrow"><span></span><span>Środki (start + wpływy)</span><b>${zl(c.funds)}</b><span class="sub">100%</span></div>
+    ${parts.map(p => `<div class="lrow"><span class="swc" style="background:${p[2]}"></span><span>${p[0]}</span><b>${zl(p[1])}</b><span class="sub">${pct(p[1])}</span></div>`).join('')}</div>`;
+  if (c.toAssign < 0) h += `<p class="sub neg" style="margin:8px 0 0">Plan jest większy niż środki o ${zl(-c.toAssign)}.</p>`;
+  // najwięcej wydane – kategorie
+  const top = S.settings.categories.map(x => ({x, v:(c.C[x.id] || {}).spent || 0, lim:(c.C[x.id] || {}).manual || 0})).filter(o => o.v > 0).sort((a, b) => b.v - a.v).slice(0, 5);
+  if (top.length) {
+    const mx = Math.max(...top.map(o => Math.max(o.v, o.lim)));
+    h += `<div class="sub" style="margin:14px 0 4px;padding-top:10px;border-top:1px solid var(--line)">Najwięcej wydane (z zaplanowanymi)</div>`;
+    h += top.map(o => `<div class="trow"><span>${esc((o.x.emoji || '') + ' ' + o.x.name)}${o.lim ? `<small> · limit ${zl(o.lim)}</small>` : ''}</span><span class="tbar"><i style="width:${Math.round(o.v / mx * 100)}%;background:${o.lim && o.v > o.lim ? 'var(--c-pay)' : 'var(--c-stat)'}"></i>${o.lim ? `<em style="left:${Math.min(100, Math.round(o.lim / mx * 100))}%"></em>` : ''}</span><b>${zl(o.v)}</b></div>`).join('');
+  }
+  // rok: wydatki w kolejnych miesiącach
+  const y = S.month.slice(0, 4), ms = Array.from({length:12}, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`);
+  const data = ms.map(m => { const r = monthInfo(m); return r ? {m, paid:r.c.spent - r.c.plannedOut, plan:r.c.plannedOut, inc:r.c.inc} : {m, paid:0, plan:0, inc:0, none:true}; });
+  const max = Math.max(1, ...data.map(d => Math.max(d.paid + d.plan, d.inc)));
+  h += `<div class="cols">${data.map(d => `<button class="col${d.m === S.month ? ' on' : ''}${d.none ? ' dim' : ''}" data-act="mjump" data-m="${d.m}" aria-label="${esc(monthLabel(d.m))}: wydatki ${zl(d.paid + d.plan)}, wpływy ${zl(d.inc)}"><span class="stk" style="height:${Math.round(84 * (d.paid + d.plan) / max)}px">${d.paid ? `<i style="flex:${d.paid};background:var(--c-stat)"></i>` : ''}${d.plan ? `<i style="flex:${d.plan};background:var(--c-pay)"></i>` : ''}</span>${d.inc ? `<span class="incm" style="bottom:${18 + Math.round(84 * d.inc / max)}px"></span>` : ''}<span class="ml">${monthOnly(d.m).slice(0, 3)}</span></button>`).join('')}</div>`;
+  h += `<div class="sub center" style="margin-top:6px"><span class="swc" style="background:var(--c-stat)"></span> zapłacone · <span class="swc" style="background:var(--c-pay)"></span> zaplanowane · <span class="swc inc"></span> wpływy · stuknij miesiąc</div>`;
+  return h + `</div>`;
+}
+
 function carryLine() {
   const mi = monthInfo(S.month); if (!mi || !mi.carry) return '';
   const carried = Object.values(mi.carried).reduce((s, v) => s + v, 0);
@@ -949,7 +1016,7 @@ function helpHtml() {
       <li>W <b>Historii</b> na górze są operacje, które dodałeś lub poprawiłeś – <b>najnowsze na górze</b>, pogrupowane: Dziś, Wczoraj…, z godziną dodania/edycji.</li>
       <li>Na dole – pozycje <b>dodane automatycznie</b> (powtarzające się).</li>
       <li><b>🔍 Szukaj</b> przeszukuje wszystkie miesiące: wpisz nazwę, kategorię, kwotę albo notatkę (np. „prąd”, „326”, „Orlen”). Stuknięcie wyniku otwiera go w jego miesiącu.</li></ul>`)
-  + sec('🧮 Skąd biorą się kwoty', `<p><b>Zmiana miesiąca:</b> przeciągnij palcem po karcie <b>Pozostało do rozdysponowania</b> albo po kontach – w lewo następny miesiąc, w prawo poprzedni.</p><p>Stuknij kartę <b>Pozostało do rozdysponowania</b> – zobaczysz rozliczenie: start + wpływy (otrzymane i spodziewane) − plan = pozostało, oraz osobno: ile jest naprawdę na kontach i ile będzie po zaplanowanych.</p>
+  + sec('🧮 Skąd biorą się kwoty', `<p><b>📊 Statystyki</b> (pod kontami): kolorowy pasek pokazuje, na co idą środki miesiąca – wydane, do zapłaty, zostało w limitach, do rozdysponowania. Niżej kategorie, na które wydajesz najwięcej (kreska = limit), i słupki wydatków w kolejnych miesiącach roku – zielona kreska to wpływy. Stuknij słupek, żeby przejść do miesiąca.</p><p><b>Zmiana miesiąca:</b> przeciągnij palcem po karcie <b>Pozostało do rozdysponowania</b> albo po kontach – w lewo następny miesiąc, w prawo poprzedni.</p><p>Stuknij kartę <b>Pozostało do rozdysponowania</b> – zobaczysz rozliczenie: start + wpływy (otrzymane i spodziewane) − plan = pozostało, oraz osobno: ile jest naprawdę na kontach i ile będzie po zaplanowanych.</p>
       <p>Każda pozycja jest tylko w jednym miejscu: wpływy w <b>💵 Wpływy</b>, znane kwoty w <b>🧾 Płatności</b>, wydatki z kategorii z limitem w <b>🛒 Wydatki z limitem</b> (zaplanowana pozycja w kategorii z limitem pokazuje się też w Płatnościach, żeby można było stuknąć ✓).</p>`)
   + sec('🗑 Usuwanie i przenoszenie z ekranu Budżet', `<ul>
       <li><b>Przesuń pozycję palcem w lewo</b> – pojawi się czerwony przycisk <b>🗑 Usuń</b>. Usuwa od razu, bez pytań – przez kilka sekund na dole jest <b>Cofnij</b>. W Wydatkach z limitem usuwa limit (wydatki przechodzą do Płatności).</li>
@@ -1613,7 +1680,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- actions ---------- */
 function setMonth(k) { if (k === S.month) return; S.month = k; subMonth(); render(); }
-const RO_OK = ['close','tab','mprev','mnext','mtoday','cat','wallet','edittx','theme','recon','togglecats'];
+const RO_OK = ['close','tab','mprev','mnext','mtoday','mjump','cat','wallet','edittx','theme','recon','togglecats'];
 
 document.addEventListener('click', async e => {
   if (Date.now() - MS_T < 400) return;
@@ -1743,6 +1810,7 @@ document.addEventListener('click', async e => {
 
     case 'catemo': { const c = catById(ds.id); if (c) openEmoPicker(c.name, c.emoji, {kind:'emo', direct:ds.id}); break; }
     case 'wallet': openWallet(ds.id); break;
+    case 'mjump': setMonth(ds.m); break;
     case 'adj': applyAdj(ds.t, Number(ds.v)); break;
     case 'wadj': {
       const d = parseZl($('#wdelta').value), cur = parseZl($('#wstart').value);
