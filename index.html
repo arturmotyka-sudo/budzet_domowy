@@ -366,8 +366,8 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '4.9';
-const APP_DATE = '2026-11-20';
+const APP_VERSION = '5.0';
+const APP_DATE = '2026-11-21';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 const fmtDate = d => { const [y, m, dd] = String(d).split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL'); };
@@ -955,7 +955,7 @@ function helpHtml() {
       <li><b>Przesuń pozycję palcem w lewo</b> – pojawi się czerwony przycisk <b>🗑 Usuń</b>. Usuwa od razu, bez pytań – przez kilka sekund na dole jest <b>Cofnij</b>. W Wydatkach z limitem usuwa limit (wydatki przechodzą do Płatności).</li>
       <li><b>Przesuń zaplanowaną pozycję palcem w prawo</b> – pojawi się niebieski przycisk <b>📅 Przenieś</b>: wybierasz następny miesiąc, za 2 lub 3 miesiące albo za rok.</li>
       <li>Przesunięcie usuwa/przenosi tylko tę jedną pozycję. Żeby usunąć powtarzanie, stuknij pozycję i użyj ikony <b>🗑</b> obok ✕ – wtedy wybierasz: tylko tę albo też przyszłe.</li></ul>`)
-  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p><p><b>Korekta stanu konta</b> (gdy w banku jest inna kwota niż w aplikacji): w kafelku konta wpisz w polu „o ile” np. 9,20 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b> – zapisze się od razu. Nie koryguj w ten sposób kwoty, którą już wpisałeś jako wydatek – odjęłaby się dwa razy. W każdym polu kwoty możesz też wpisać działanie, np. <b>185,09-9,20</b>.</p><p><b>Brakuje pieniędzy</b> (bilans na minusie, np. po wydatku ponad plan): stuknij <b>✂️ Zdejmij … z zaplanowanej kwoty</b> pod bilansem i wybierz zaplanowaną płatność (np. odłożenie na oszczędności) albo limit – brakująca kwota zostanie z niej zdjęta tylko w tym miesiącu. Zaplanowaną kwotę możesz też poprawić ręcznie: stuknij ją i dopisz w kwocie np. <b>-9,20</b>.</p><p>Najprościej od razu przy dodawaniu: w okienku nowego wydatku wybierz konto (<b>Z czyich pieniędzy</b>) i w <b>Zdejmij z zaplanowanej kwoty</b> wskaż płatność, np. odłożenie – zmniejszy się o kwotę wydatku (tylko w tym miesiącu), a bilans zostanie bez zmian. Wydatek z kategorii z limitem schodzi z limitu, więc tego wyboru wtedy nie ma.</p>`)
+  + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p><p><b>Zmiana kwoty o …</b> (zaplanowana płatność, wpływ, wydatek albo limit kategorii): stuknij pozycję lub kategorię, pod kwotą wpisz w polu „zmień o” np. 25,50 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b>, potem <b>Zapisz</b>. Przy pozycji powtarzającej się aplikacja zapyta, czy zmiana dotyczy tylko tego miesiąca, czy też kolejnych.</p><p><b>Korekta stanu konta</b> (gdy w banku jest inna kwota niż w aplikacji): w kafelku konta wpisz w polu „o ile” np. 9,20 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b> – zapisze się od razu. Nie koryguj w ten sposób kwoty, którą już wpisałeś jako wydatek – odjęłaby się dwa razy. W każdym polu kwoty możesz też wpisać działanie, np. <b>185,09-9,20</b>.</p><p><b>Brakuje pieniędzy</b> (bilans na minusie, np. po wydatku ponad plan): stuknij <b>✂️ Zdejmij … z zaplanowanej kwoty</b> pod bilansem i wybierz zaplanowaną płatność (np. odłożenie na oszczędności) albo limit – brakująca kwota zostanie z niej zdjęta tylko w tym miesiącu. Zaplanowaną kwotę możesz też poprawić ręcznie: stuknij ją i dopisz w kwocie np. <b>-9,20</b>.</p><p>Najprościej od razu przy dodawaniu: w okienku nowego wydatku wybierz konto (<b>Z czyich pieniędzy</b>) i w <b>Zdejmij z zaplanowanej kwoty</b> wskaż płatność, np. odłożenie – zmniejszy się o kwotę wydatku (tylko w tym miesiącu), a bilans zostanie bez zmian. Wydatek z kategorii z limitem schodzi z limitu, więc tego wyboru wtedy nie ma.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
@@ -1035,6 +1035,7 @@ function openCat(id) {
     ${S.readOnly ? `<div class="card"><div class="kv"><span>Plan</span><b>${zl(cc.plan)}</b></div>` : `
     <label class="f">Limit na ${esc(monthLabel(S.month))} <span style="font-weight:400">(puste = bez limitu, pozycje w „Płatności”)</span></label>
     <input class="amt" id="plan" inputmode="decimal" placeholder="${cc.auto ? 'auto: ' + toInput(cc.plan) : '0,00'}" value="${cc.auto ? '' : toInput(cc.plan)}">
+    ${cc.auto || S.readOnly ? '' : adjRow('plan')}
     ${cc.auto ? `<span class="hint center">Bez limitu – pozycje tej kategorii (${zl(cc.plan)}) są w sekcji „Płatności”. Wpisz kwotę, jeśli chcesz limit, np. na życie.</span>` : ''}
     <span class="sub" id="planhint" style="text-align:center;margin-top:6px"></span>
     ${!cc.auto && cc.spent > cc.plan ? `<button class="btn sec" data-act="planmatch" data-v="${cc.spent}">Ustaw plan = ${zl(cc.spent)} (wydane + zaplanowane)</button>` : ''}
@@ -1110,6 +1111,7 @@ function renderTxSheet(focus) {
   let h = t.id ? `<div class="shead"><h2>Edytuj operację</h2><span style="display:flex;gap:8px"><button class="x" data-act="tdel" aria-label="Usuń" style="color:var(--bad)">🗑</button><button class="x" data-act="close" aria-label="Zamknij">✕</button></span></div>` : head('Nowa operacja');
   h += `<div class="seg">${types.map(([k, l]) => `<button class="${t.type === k ? 'on' : ''}" data-act="ttype" data-v="${k}">${l}</button>`).join('')}</div>`;
   h += `<input class="amt" id="tamt" inputmode="decimal" placeholder="0,00 zł" value="${esc(t.amountStr)}" style="margin-top:12px${t.planned && t.type !== 'wplyw' ? ';color:var(--bad)' : t.type === 'wplyw' ? ';color:var(--ok)' : ''}">`;
+  if (t.id) h += adjRow('tamt');
   if (t.type === 'wydatek') {
     h += `<label class="f">Kategoria</label><div class="chips">${S.settings.categories.map(x => {
       const cc = c.C[x.id]; const left = cc.plan - cc.spent + (orig && orig.type === 'wydatek' && orig.cat === x.id ? orig.amount : 0);
@@ -1282,6 +1284,21 @@ document.addEventListener('touchend', () => {
   }
   SW = null;
 });
+/* „o ile: [ ] − Odejmij / + Dodaj” – zmienia kwotę w polu bez liczenia na kalkulatorze */
+const adjRow = target => `<div class="row2" style="grid-template-columns:1fr auto auto;align-items:center;margin-top:8px"><input id="adj-${target}" inputmode="decimal" placeholder="zmień o, np. 25,50"><button class="btn sec" style="margin:0;padding:12px 14px" data-act="adj" data-t="${target}" data-v="-1">− Odejmij</button><button class="btn sec" style="margin:0;padding:12px 14px" data-act="adj" data-t="${target}" data-v="1">+ Dodaj</button></div>`;
+function applyAdj(target, sign) {
+  const inp = $('#' + target), di = $('#adj-' + target); if (!inp || !di) return;
+  const d = parseZl(di.value), cur = parseZl(inp.value);
+  if (isNaN(d) || d <= 0) { toast('Wpisz kwotę, o którą zmienić'); return; }
+  if (isNaN(cur)) { toast('Popraw kwotę w polu powyżej'); return; }
+  const nv = cur + sign * d;
+  if (nv < 0) { toast(`Za dużo – zostałoby ${zl(nv)}`); return; }
+  inp.value = nv === 0 ? '0,00' : toInput(nv); di.value = '';
+  if (target === 'tamt' && S.txDraft) S.txDraft.amountStr = inp.value;
+  if (target === 'plan') updatePlanHint();
+  toast(`${sign > 0 ? '+' : '−'}${zl(d)} → ${zl(nv)} · stuknij „Zapisz”, żeby zachować`);
+}
+
 /* przeciągnięcie palcem po bilansie / kontach = poprzedni lub następny miesiąc */
 let MS = null, MS_T = 0;
 document.addEventListener('touchstart', e => {
@@ -1726,6 +1743,7 @@ document.addEventListener('click', async e => {
 
     case 'catemo': { const c = catById(ds.id); if (c) openEmoPicker(c.name, c.emoji, {kind:'emo', direct:ds.id}); break; }
     case 'wallet': openWallet(ds.id); break;
+    case 'adj': applyAdj(ds.t, Number(ds.v)); break;
     case 'wadj': {
       const d = parseZl($('#wdelta').value), cur = parseZl($('#wstart').value);
       if (isNaN(d) || d <= 0) { toast('Wpisz kwotę, o którą zmienić stan'); return; }
