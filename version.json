@@ -1,9 +1,10 @@
 {
-  "version": "5.1",
-  "date": "2026-11-21",
+  "version": "5.2",
+  "date": "2026-11-22",
   "changes": [
-    "Sekcje na ekranie Budżet oddzielone kolorowymi liniami",
-    "Nowa sekcja 📊 Statystyki: na co idą środki, najwięcej wydane kategorie i słupki wydatków w kolejnych miesiącach roku",
-    "W Historii poszczególne dni oddzielone liniami"
+    "Nowa zakładka 💎 Mamy: lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe i inne",
+    "Podsumowanie „Razem mamy” z podziałem i szacowanymi odsetkami netto",
+    "Przypomnienie przed końcem lokaty – kropka na zakładce Mamy i komunikat na górze",
+    "Odnawianie lokaty na ten sam okres (z odsetkami albo bez)"
   ]
 }

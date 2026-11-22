@@ -96,6 +96,8 @@ input.amt{font-size:30px;font-weight:700;text-align:center;padding:12px;font-var
 :root{--c-acc:#2f6f5e;--c-stat:#2a78d6;--c-inc:#1baf7a;--c-pay:#c62828;--c-lim:#6250d6}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--c-acc:#6cc2a6;--c-stat:#3987e5;--c-inc:#199e70;--c-pay:#ef6b6b;--c-lim:#9085e9}}
 :root[data-theme=dark]{--c-acc:#6cc2a6;--c-stat:#3987e5;--c-inc:#199e70;--c-pay:#ef6b6b;--c-lim:#9085e9}
+.aalert{display:block;width:100%;text-align:left;font-size:14px;line-height:1.4;border-color:var(--warn);background:var(--warnbg);color:var(--ink)}
+.aalert.late{border-color:var(--bad);background:var(--badbg)}
 .sep{display:flex;align-items:center;gap:10px;margin:22px 2px 6px;color:var(--sc);font-size:13px;font-weight:700;letter-spacing:.02em}
 .sep::before{content:'';flex:0 0 14px;height:2px;background:var(--sc);opacity:.6;border-radius:1px}
 .sep i{flex:1;min-width:12px;height:2px;background:var(--sc);opacity:.6;border-radius:1px}
@@ -243,6 +245,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 <nav class="tabs" id="tabs">
   <button data-act="tab" data-tab="budzet"><span class="ico">💰</span>Budżet</button>
   <button data-act="tab" data-tab="historia"><span class="ico">🧾</span>Historia</button>
+  <button data-act="tab" data-tab="mamy" id="tab-mamy"><span class="ico">💎</span>Mamy</button>
   <button data-act="tab" data-tab="ustawienia" id="tab-ust"><span class="ico">⚙️</span>Ustawienia</button>
   <button data-act="tab" data-tab="pomoc" id="tab-help"><span class="ico">❓</span>Pomoc</button>
 </nav>
@@ -397,8 +400,8 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.1';
-const APP_DATE = '2026-11-21';
+const APP_VERSION = '5.2';
+const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 const fmtDate = d => { const [y, m, dd] = String(d).split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL'); };
@@ -431,7 +434,7 @@ let store = null;
 /* ---------- storage (tylko w telefonie) ---------- */
 function LocalStore(initial, persist) {
   const KEY = 'budzet-domowy-v1';
-  const norm = d => ({settings:d.settings || null, months:d.months || {}, tx:d.tx || {}, rules:d.rules || {}});
+  const norm = d => ({settings:d.settings || null, months:d.months || {}, tx:d.tx || {}, rules:d.rules || {}, assets:d.assets || {}});
   let data = norm({});
   if (initial) data = norm(clone(initial));
   else { try { const r = lsGet(KEY); if (r) data = norm(JSON.parse(r)); } catch (e) {} }
@@ -463,13 +466,15 @@ function LocalStore(initial, persist) {
     deleteTx: async id => { delete data.tx[id]; save(); },
     saveRule: async r => { data.rules[r.id] = r; save(); },
     deleteRule: async id => { delete data.rules[id]; save(); },
+    saveAsset: async a => { data.assets[a.id] = a; save(); },
+    deleteAsset: async id => { delete data.assets[id]; save(); },
     clearMonth: async (m, whole) => {
       let n = 0;
       for (const [id, t] of Object.entries(data.tx)) if (t.m === m) { delete data.tx[id]; n++; }
       if (whole) delete data.months[m];
       save(); return n;
     },
-    hasData: () => Object.keys(data.tx).length > 0 || Object.keys(data.months).length > 0
+    hasData: () => Object.keys(data.tx).length > 0 || Object.keys(data.months).length > 0 || Object.keys(data.assets).length > 0
   };
 }
 async function write(p, okMsg) {
@@ -481,7 +486,7 @@ async function write(p, okMsg) {
 function subAll() {
   store.watchAll(d => {
     S.data = d; S.ver = (S.ver || 0) + 1;
-    S.settings = d.settings || null; S.rules = d.rules || {};
+    S.settings = d.settings || null; S.rules = d.rules || {}; S.assets = d.assets || {};
     const by = {}; for (const t of Object.values(d.tx)) (by[t.m] || (by[t.m] = [])).push(t);
     S.txBy = by; subMonth(); render();
   });
@@ -655,11 +660,11 @@ function render() { renderHeader(); renderMain(); renderChrome(); }
 
 function renderHeader() {
   const h = $('#hdr');
-  const showNav = S.settings && S.tab !== 'ustawienia' && S.tab !== 'pomoc';
+  const showNav = S.settings && S.tab !== 'ustawienia' && S.tab !== 'pomoc' && S.tab !== 'mamy';
   const tb = `<button class="hbtn" data-act="theme" aria-label="${isDarkNow() ? 'Przełącz na jasny' : 'Przełącz na ciemny'}">${isDarkNow() ? '🌙' : '☀️'}</button>`;
   const html = showNav
     ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div>${tb}`
-    : `<div class="htitle">${S.tab === 'pomoc' && S.settings ? 'Pomoc' : S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
+    : `<div class="htitle">${S.tab === 'mamy' && S.settings ? 'Mamy' : S.tab === 'pomoc' && S.settings ? 'Pomoc' : S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
   if (h.innerHTML !== html) h.innerHTML = html;
 }
 
@@ -667,8 +672,9 @@ function renderChrome() {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
   $('#tabs').hidden = !S.settings;
   $('#tab-ust').classList.toggle('hidden', !!REPORT);
+  assetBadge();
   $('#tab-help').classList.toggle('upd', !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION)));
-  $('#fab').hidden = !(S.settings && S.monthDoc && S.tab !== 'ustawienia' && S.tab !== 'pomoc' && !S.readOnly);
+  $('#fab').hidden = !(S.settings && S.monthDoc && S.tab !== 'ustawienia' && S.tab !== 'pomoc' && S.tab !== 'mamy' && !S.readOnly);
 }
 
 function renderMain(force) {
@@ -695,6 +701,7 @@ function mainHtml() {
   if (S.settings === null) return b + onboardHtml();
   if (S.tab === 'ustawienia') return b + settingsHtml();
   if (S.tab === 'pomoc') return b + helpHtml();
+  if (S.tab === 'mamy') return b + mamyHtml();
   if (S.monthDoc === undefined) return b + `<div class="empty">Wczytywanie miesiąca…</div>`;
   b += backupBanner();
   if (S.monthDoc === null) return b + noMonthHtml();
@@ -767,6 +774,126 @@ function budgetHtml() {
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
   return h;
 }
+/* ---------- 💎 Mamy: lokaty, PPK, IKZE… ---------- */
+const AKINDS = [['lokata','🏦','Lokata','#2a78d6'], ['oszcz','🐷','Konto oszczędnościowe','#1baf7a'], ['obligacje','📜','Obligacje','#b7791f'], ['ppk','🏢','PPK','#6250d6'],
+  ['ikze','🧓','IKZE','#d6457a'], ['ike','📈','IKE','#0e9aa7'], ['fundusz','📊','Fundusze / akcje','#7c8a2e'], ['gotowka','💵','Gotówka','#6b7470'], ['inne','💎','Inne','#9a6b4f']];
+const akind = k => AKINDS.find(x => x[0] === k) || AKINDS[AKINDS.length - 1];
+const daysTo = d => Math.round((Date.parse(d) - Date.parse(todayStr())) / 864e5);
+const addDays = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0, 10);
+const daysWord = n => `${n} ${plural(n, 'dzień', 'dni', 'dni')}`;
+const assetList = () => Object.values(S.assets || {}).sort((a, b) => (a.end || '9999').localeCompare(b.end || '9999') || (b.amount || 0) - (a.amount || 0));
+// odsetki netto (po 19% podatku Belki) za cały okres od–do – szacunkowo
+const assetInterest = a => (a.rate && a.start && a.end && a.amount) ? Math.round(a.amount * a.rate / 100 * Math.max(0, (Date.parse(a.end) - Date.parse(a.start)) / 864e5) / 365 * 0.81) : 0;
+function assetAlerts() {
+  return assetList().filter(a => a.end).map(a => ({a, d:daysTo(a.end)})).filter(x => x.d <= (x.a.remind ?? 14));
+}
+let lastBadge = -1;
+function assetBadge() {
+  const n = S.settings ? assetAlerts().length : 0;
+  $('#tab-mamy').classList.toggle('upd', n > 0);
+  $('#tab-mamy').hidden = !S.settings;
+  if (n !== lastBadge) { lastBadge = n; try { if (n && navigator.setAppBadge) navigator.setAppBadge(n); else if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch (e) {} }
+}
+function alertText(x) {
+  const k = akind(x.a.kind);
+  const nm = `<b>${esc(x.a.name || k[2])}</b>${x.a.name ? ` (${k[2]})` : ''}`;
+  if (x.d > 0) return `${nm} – koniec za <b>${daysWord(x.d)}</b> (${esc(fmtDate(x.a.end))})`;
+  if (x.d === 0) return `${nm} – koniec <b>dziś</b>`;
+  return `${nm} – koniec minął ${daysWord(-x.d)} temu (${esc(fmtDate(x.a.end))}). Odnów albo usuń.`;
+}
+function mamyHtml() {
+  const list = assetList(), total = list.reduce((s, a) => s + (a.amount || 0), 0);
+  let h = '';
+  const al = assetAlerts();
+  if (al.length) h += al.map(x => `<button class="card aalert${x.d < 0 ? ' late' : ''}" data-act="asset" data-id="${esc(x.a.id)}">⏰ ${alertText(x)}</button>`).join('');
+  h += sep('💎 Razem mamy', zl(total), 'var(--c-acc)');
+  if (!list.length) {
+    h += `<div class="card"><p class="sub" style="margin:0">Wpisz tu lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe – wszystko, co chcesz mieć na oku. Przy lokacie podaj datę końca, a aplikacja przypomni o niej kropką na zakładce <b>Mamy</b>.</p></div>`;
+  } else {
+    const by = AKINDS.map(k => [k, list.filter(a => akind(a.kind)[0] === k[0])]).filter(([, l]) => l.length);
+    const sums = by.map(([k, l]) => [k, l.reduce((s, a) => s + (a.amount || 0), 0)]).filter(([, v]) => v > 0);
+    h += `<div class="card">`;
+    if (sums.length) h += `<div class="sbar">${sums.map(([k, v]) => `<i style="flex:${v};background:${k[3]}"></i>`).join('')}</div>`;
+    h += `<div class="leg">${sums.map(([k, v]) => `<div class="lrow"><span class="swc" style="background:${k[3]}"></span><span>${k[1]} ${k[2]}</span><b>${zl(v)}</b><span class="sub">${total ? Math.round(v / total * 100) + '%' : ''}</span></div>`).join('')}</div></div>`;
+    for (const [k, l] of by) {
+      h += sep(`${k[1]} ${k[2]}`, zl(l.reduce((s, a) => s + (a.amount || 0), 0)), k[3]) + `<div class="card list">${l.map(a => {
+        const d = a.end ? daysTo(a.end) : null, int = assetInterest(a);
+        const when = a.end ? (d > 0 ? `do ${fmtDate(a.end)} · za ${daysWord(d)}` : d === 0 ? 'koniec dziś' : `koniec minął ${fmtDate(a.end)}`) : '';
+        const sub = [a.inst, a.rate ? String(a.rate).replace('.', ',') + '%' : '', when].filter(Boolean).map(esc).join(' · ');
+        const soon = d !== null && d <= (a.remind ?? 14);
+        return `<button class="tx" data-act="asset" data-id="${esc(a.id)}"><span class="emo">${k[1]}</span><span class="cbody"><span class="cname" style="display:block">${esc(a.name || k[2])}</span><span class="sub">${soon ? `<span class="tag" style="margin:0 6px 0 0">⏰ ${d < 0 ? 'po terminie' : 'wkrótce'}</span>` : ''}${sub}</span>${int ? `<span class="sub">odsetki ok. +${zl(int)} netto</span>` : ''}${a.note ? `<span class="sub">${esc(a.note)}</span>` : ''}</span><span class="amtv">${zl(a.amount || 0)}</span></button>`;
+      }).join('')}</div>`;
+    }
+  }
+  if (!S.readOnly) h += `<button class="btn" data-act="assetadd">+ Dodaj (lokata, PPK, IKZE…)</button>`;
+  return h;
+}
+function openAsset(id) {
+  const a = id && S.assets[id];
+  S.adraft = a ? clone(a) : {id:null, kind:'lokata', remind:14, start:todayStr()};
+  renderAssetSheet();
+}
+function syncAsset() {
+  const d = S.adraft, v = id => { const e = $('#' + id); return e ? e.value : undefined; };
+  if (!d) return;
+  for (const [f, id] of [['name','aname'], ['inst','ainst'], ['start','astart'], ['end','aend'], ['note','anote'], ['amountStr','aamt'], ['rateStr','arate']]) { const x = v(id); if (x !== undefined) d[f] = x; }
+}
+function renderAssetSheet() {
+  const d = S.adraft, k = akind(d.kind);
+  const amt = d.amountStr !== undefined ? d.amountStr : toInput(d.amount || 0);
+  const rate = d.rateStr !== undefined ? d.rateStr : (d.rate ? String(d.rate).replace('.', ',') : '');
+  let h = d.id ? `<div class="shead"><h2>${k[1]} ${esc(d.name || k[2])}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>` : head('Dodaj do „Mamy”');
+  h += `<div class="chips">${AKINDS.map(x => `<button class="chip${x[0] === d.kind ? ' on' : ''}" data-act="akind" data-v="${x[0]}">${x[1]} ${x[2]}</button>`).join('')}</div>`;
+  h += `<label class="f">Nazwa</label><input id="aname" value="${esc(d.name || '')}" placeholder="np. ${d.kind === 'lokata' ? 'Lokata 6 mies.' : d.kind === 'ppk' ? 'PPK w pracy' : k[2]}" maxlength="60">`;
+  h += `<label class="f">Bank / instytucja</label><input id="ainst" value="${esc(d.inst || '')}" placeholder="np. mBank, PKO, NN" maxlength="60">`;
+  h += `<label class="f">Kwota (stan teraz)</label><input class="amt" id="aamt" inputmode="decimal" placeholder="0,00 zł" value="${esc(amt)}">${adjRow('aamt')}`;
+  h += `<label class="f">Oprocentowanie % (opcjonalnie)</label><input id="arate" inputmode="decimal" placeholder="np. 5,5" value="${esc(rate)}">`;
+  h += `<div class="row2"><div><label class="f">Od</label><input type="date" id="astart" value="${esc(d.start || '')}"></div><div><label class="f">Do (koniec)${d.kind === 'lokata' || d.kind === 'obligacje' ? '' : ' – opcj.'}</label><input type="date" id="aend" value="${esc(d.end || '')}"></div></div>`;
+  h += `<label class="f">Przypomnij przed końcem</label><div class="chips">${[3, 7, 14, 30].map(n => `<button class="chip${(d.remind ?? 14) === n ? ' on' : ''}" data-act="aremind" data-v="${n}">${daysWord(n)}</button>`).join('')}</div>`;
+  h += `<label class="f">Notatka</label><input id="anote" value="${esc(d.note || '')}" placeholder="np. odsetki na konto główne" maxlength="120">`;
+  h += `<button class="btn" data-act="asave">${d.id ? 'Zapisz zmiany' : 'Dodaj'}</button>`;
+  if (d.id && d.end) h += `<button class="btn sec" data-act="arenew">🔁 Odnów na ten sam okres</button>`;
+  if (d.id) h += `<button class="btn danger" data-act="adel">Usuń</button>`;
+  openSheet(h, {kind:'asset'});
+}
+async function assetAction(a) {
+  const d = S.adraft;
+  if (a === 'akind') return;
+  if (a === 'asave') {
+    syncAsset();
+    const amount = parseZl(d.amountStr !== undefined ? d.amountStr : toInput(d.amount || 0));
+    if (isNaN(amount) || amount < 0) { toast('Wpisz poprawną kwotę'); return; }
+    const rate = d.rateStr ? Number(String(d.rateStr).replace(',', '.')) : 0;
+    if (isNaN(rate) || rate < 0) { toast('Wpisz poprawne oprocentowanie'); return; }
+    if (d.start && d.end && d.end < d.start) { toast('Koniec musi być po początku'); return; }
+    const old = d.id && S.assets[d.id];
+    const rec = {id:d.id || uid(), kind:d.kind, name:(d.name || '').trim(), inst:(d.inst || '').trim(), amount, rate:rate || 0, start:d.start || '', end:d.end || '', remind:d.remind ?? 14, note:(d.note || '').trim(), upd:(!old || old.amount !== amount) ? Date.now() : (old.upd || Date.now())};
+    closeSheet(); S.adraft = null;
+    await write(store.saveAsset(rec), old ? 'Zapisano' : 'Dodano');
+    return;
+  }
+  if (a === 'arenew') {
+    syncAsset();
+    const cur = S.assets[d.id]; if (!cur || !cur.end) return;
+    const len = cur.start ? Math.max(1, Math.round((Date.parse(cur.end) - Date.parse(cur.start)) / 864e5)) : 0;
+    if (!len) { toast('Wpisz datę „Od”, żeby wiedzieć, na ile odnowić'); return; }
+    const int = assetInterest(cur);
+    const opts = int ? [{label:`Z odsetkami: ${zl(cur.amount)} → ${zl(cur.amount + int)}`}, {label:`Bez odsetek (${zl(cur.amount)})`}] : [{label:`Odnów od ${fmtDate(cur.end)} na ${daysWord(len)}`}];
+    const ch = await choose(`Odnowić „${cur.name || akind(cur.kind)[2]}” od ${fmtDate(cur.end)} do ${fmtDate(addDays(cur.end, len))}?`, opts);
+    if (ch < 0) return;
+    const n = Object.assign({}, cur, {start:cur.end, end:addDays(cur.end, len), amount:cur.amount + (int && ch === 0 ? int : 0), upd:Date.now()});
+    closeSheet(); S.adraft = null;
+    await write(store.saveAsset(n), `Odnowiono do ${fmtDate(n.end)}`);
+    return;
+  }
+  if (a === 'adel') {
+    const cur = S.assets[d.id]; if (!cur) return;
+    if (!(await ask(`Usunąć „${cur.name || akind(cur.kind)[2]}” (${zl(cur.amount || 0)})?`))) return;
+    closeSheet(); S.adraft = null;
+    await write(store.deleteAsset(cur.id), 'Usunięto');
+  }
+}
+
 /* nagłówek sekcji z kolorową linią (jak w aplikacji Najem) */
 const sep = (title, right, color, cls) => `<div class="sep ${cls || ''}" style="--sc:${color}"><span>${title}</span><i></i>${right ? `<span class="sr">${right}</span>` : ''}</div>`;
 
@@ -1024,6 +1151,7 @@ function helpHtml() {
       <li>Przesunięcie usuwa/przenosi tylko tę jedną pozycję. Żeby usunąć powtarzanie, stuknij pozycję i użyj ikony <b>🗑</b> obok ✕ – wtedy wybierasz: tylko tę albo też przyszłe.</li></ul>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p><p><b>Zmiana kwoty o …</b> (zaplanowana płatność, wpływ, wydatek albo limit kategorii): stuknij pozycję lub kategorię, pod kwotą wpisz w polu „zmień o” np. 25,50 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b>, potem <b>Zapisz</b>. Przy pozycji powtarzającej się aplikacja zapyta, czy zmiana dotyczy tylko tego miesiąca, czy też kolejnych.</p><p><b>Korekta stanu konta</b> (gdy w banku jest inna kwota niż w aplikacji): w kafelku konta wpisz w polu „o ile” np. 9,20 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b> – zapisze się od razu. Nie koryguj w ten sposób kwoty, którą już wpisałeś jako wydatek – odjęłaby się dwa razy. W każdym polu kwoty możesz też wpisać działanie, np. <b>185,09-9,20</b>.</p><p><b>Brakuje pieniędzy</b> (bilans na minusie, np. po wydatku ponad plan): stuknij <b>✂️ Zdejmij … z zaplanowanej kwoty</b> pod bilansem i wybierz zaplanowaną płatność (np. odłożenie na oszczędności) albo limit – brakująca kwota zostanie z niej zdjęta tylko w tym miesiącu. Zaplanowaną kwotę możesz też poprawić ręcznie: stuknij ją i dopisz w kwocie np. <b>-9,20</b>.</p><p>Najprościej od razu przy dodawaniu: w okienku nowego wydatku wybierz konto (<b>Z czyich pieniędzy</b>) i w <b>Zdejmij z zaplanowanej kwoty</b> wskaż płatność, np. odłożenie – zmniejszy się o kwotę wydatku (tylko w tym miesiącu), a bilans zostanie bez zmian. Wydatek z kategorii z limitem schodzi z limitu, więc tego wyboru wtedy nie ma.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
+  + sec('💎 Mamy – lokaty, PPK, IKZE', `<ul><li>Zakładka <b>Mamy</b> to miejsce na oszczędności, które chcesz mieć na oku: lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe, gotówkę. Nie wpływają na budżet miesiąca.</li><li><b>+ Dodaj</b> → wybierz rodzaj, wpisz kwotę, bank, oprocentowanie i daty <b>od–do</b>. Przy lokacie aplikacja policzy szacowane odsetki netto (po 19% podatku).</li><li><b>Przypomnienie:</b> gdy do końca zostaje mniej dni niż ustawione (3, 7, 14 albo 30), na zakładce <b>Mamy</b> pojawia się czerwona kropka, a na górze komunikat ⏰. Kropka zostaje, dopóki nie odnowisz albo nie usuniesz pozycji.</li><li><b>🔁 Odnów na ten sam okres</b> – przesuwa daty o tyle samo dni; do wyboru z dopisaniem odsetek albo bez.</li><li>Kwotę (np. stan PPK) zaktualizujesz polem <b>zmień o</b> albo wpisując nową wartość.</li></ul>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
       <li>Na komputerze otwórz załącznik dwuklikiem – w przeglądarce widać cały budżet (wszystkie miesiące) w trybie podglądu.</li>
@@ -1811,6 +1939,11 @@ document.addEventListener('click', async e => {
     case 'catemo': { const c = catById(ds.id); if (c) openEmoPicker(c.name, c.emoji, {kind:'emo', direct:ds.id}); break; }
     case 'wallet': openWallet(ds.id); break;
     case 'mjump': setMonth(ds.m); break;
+    case 'asset': openAsset(ds.id); break;
+    case 'assetadd': openAsset(null); break;
+    case 'akind': syncAsset(); S.adraft.kind = ds.v; renderAssetSheet(); break;
+    case 'aremind': syncAsset(); S.adraft.remind = Number(ds.v); renderAssetSheet(); break;
+    case 'asave': case 'arenew': case 'adel': await assetAction(a); break;
     case 'adj': applyAdj(ds.t, Number(ds.v)); break;
     case 'wadj': {
       const d = parseZl($('#wdelta').value), cur = parseZl($('#wstart').value);
