@@ -1,10 +1,8 @@
 {
-  "version": "5.2",
+  "version": "5.3",
   "date": "2026-11-22",
   "changes": [
-    "Nowa zakładka 💎 Mamy: lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe i inne",
-    "Podsumowanie „Razem mamy” z podziałem i szacowanymi odsetkami netto",
-    "Przypomnienie przed końcem lokaty – kropka na zakładce Mamy i komunikat na górze",
-    "Odnawianie lokaty na ten sam okres (z odsetkami albo bez)"
+    "Sekcja „Aktualizacja” (i inne w Pomocy) nie zwija się po „Sprawdź ponownie”",
+    "Po sprawdzeniu pojawia się komunikat: „Masz aktualną wersję” albo „Jest nowa wersja”"
   ]
 }

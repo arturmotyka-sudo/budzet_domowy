@@ -400,7 +400,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.2';
+const APP_VERSION = '5.3';
 const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1072,7 +1072,8 @@ function settingsHtml() {
 }
 
 function helpHtml() {
-  const sec = (title, body, open) => `<details class="help"${open ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
+  // rozwinięte sekcje zostają rozwinięte także po odświeżeniu (np. po „Sprawdź ponownie”)
+  const sec = (title, body, open) => { const k = title.split('<')[0].trim(); const o = k in HELP_OPEN ? HELP_OPEN[k] : !!open; return `<details class="help" data-k="${esc(k)}"${o ? ' open' : ''}><summary>${title}</summary>${body}</details>`; };
   return `<div class="card"><b>Jak to działa w skrócie</b><p class="sub">Ekran Budżet (od góry):</p><ul class="sub" style="padding-left:18px;margin:0">
       <li><b>Na kontach</b> – ile prawdziwych pieniędzy masz teraz (zaraz pod bilansem).</li>
       <li><b>💵 Wpływy</b> – pensja, najem itp.: spodziewane (🕒, z przyciskiem ✓ Wpłynęło) i otrzymane (✓).</li>
@@ -1479,6 +1480,9 @@ document.addEventListener('touchend', () => {
   }
   SW = null;
 });
+const HELP_OPEN = {};
+document.addEventListener('toggle', e => { const d = e.target; if (d && d.matches && d.matches('details.help[data-k]')) HELP_OPEN[d.dataset.k] = d.open; }, true);
+
 /* „o ile: [ ] − Odejmij / + Dodaj” – zmienia kwotę w polu bez liczenia na kalkulatorze */
 const adjRow = target => `<div class="row2" style="grid-template-columns:1fr auto auto;align-items:center;margin-top:8px"><input id="adj-${target}" inputmode="decimal" placeholder="zmień o, np. 25,50"><button class="btn sec" style="margin:0;padding:12px 14px" data-act="adj" data-t="${target}" data-v="-1">− Odejmij</button><button class="btn sec" style="margin:0;padding:12px 14px" data-act="adj" data-t="${target}" data-v="1">+ Dodaj</button></div>`;
 function applyAdj(target, sign) {
@@ -1834,7 +1838,12 @@ document.addEventListener('click', async e => {
       lockOpen('confirm', {info:'Wyłączenie PIN-u', onOk:() => { try { localStorage.removeItem(PIN_KEY); } catch (e) {} lsSet(PIN_OFF, '1'); toast('PIN wyłączony'); renderMain(true); }});
       break;
     case 'pinon': lockOpen('setup', {cancellable:true}); break;
-    case 'updcheck': checkUpdate(); break;
+    case 'updcheck': {
+      S.remote = null; renderMain(true);
+      await checkUpdate();
+      toast(S.remote && !S.remote.error ? (verNewer(S.remote.version, APP_VERSION) ? `Jest nowa wersja ${S.remote.version}` : '✓ Masz aktualną wersję') : 'Nie udało się sprawdzić – brak internetu?');
+      break;
+    }
     case 'clearmonth': {
       const m = S.month, n = S.tx.length;
       const ch = await choose(`Wyczyścić ${monthLabel(m)}? Tego nie da się cofnąć – jeśli chcesz mieć kopię, najpierw wyślij raport.`,
