@@ -400,7 +400,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.3';
+const APP_VERSION = '5.4';
 const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -775,8 +775,9 @@ function budgetHtml() {
   return h;
 }
 /* ---------- 💎 Mamy: lokaty, PPK, IKZE… ---------- */
-const AKINDS = [['lokata','🏦','Lokata','#2a78d6'], ['oszcz','🐷','Konto oszczędnościowe','#1baf7a'], ['obligacje','📜','Obligacje','#b7791f'], ['ppk','🏢','PPK','#6250d6'],
-  ['ikze','🧓','IKZE','#d6457a'], ['ike','📈','IKE','#0e9aa7'], ['fundusz','📊','Fundusze / akcje','#7c8a2e'], ['gotowka','💵','Gotówka','#6b7470'], ['inne','💎','Inne','#9a6b4f']];
+const AKINDS = [['lokata','🏦','Lokaty','#2a78d6'], ['ror','💳','ROR (konto osobiste)','#3d8f5a'], ['fundusz','📊','Fundusze / akcje','#7c8a2e'], ['ikze','🧓','IKZE','#d6457a'], ['ppk','🏢','PPK','#6250d6'],
+  ['ike','📈','IKE','#0e9aa7'], ['oszcz','🐷','Konto oszczędnościowe','#1baf7a'], ['obligacje','📜','Obligacje','#b7791f'], ['gotowka','💵','Gotówka','#6b7470'], ['inne','💎','Inne','#9a6b4f']];
+const NODATE = ['ror', 'gotowka'];
 const akind = k => AKINDS.find(x => x[0] === k) || AKINDS[AKINDS.length - 1];
 const daysTo = d => Math.round((Date.parse(d) - Date.parse(todayStr())) / 864e5);
 const addDays = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0, 10);
@@ -844,12 +845,14 @@ function renderAssetSheet() {
   const rate = d.rateStr !== undefined ? d.rateStr : (d.rate ? String(d.rate).replace('.', ',') : '');
   let h = d.id ? `<div class="shead"><h2>${k[1]} ${esc(d.name || k[2])}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>` : head('Dodaj do „Mamy”');
   h += `<div class="chips">${AKINDS.map(x => `<button class="chip${x[0] === d.kind ? ' on' : ''}" data-act="akind" data-v="${x[0]}">${x[1]} ${x[2]}</button>`).join('')}</div>`;
-  h += `<label class="f">Nazwa</label><input id="aname" value="${esc(d.name || '')}" placeholder="np. ${d.kind === 'lokata' ? 'Lokata 6 mies.' : d.kind === 'ppk' ? 'PPK w pracy' : k[2]}" maxlength="60">`;
+  h += `<label class="f">Nazwa</label><input id="aname" value="${esc(d.name || '')}" placeholder="np. ${d.kind === 'lokata' ? 'Lokata 6 mies.' : d.kind === 'ppk' ? 'PPK w pracy' : d.kind === 'ror' ? 'Konto osobiste' : k[2]}" maxlength="60">`;
   h += `<label class="f">Bank / instytucja</label><input id="ainst" value="${esc(d.inst || '')}" placeholder="np. mBank, PKO, NN" maxlength="60">`;
   h += `<label class="f">Kwota (stan teraz)</label><input class="amt" id="aamt" inputmode="decimal" placeholder="0,00 zł" value="${esc(amt)}">${adjRow('aamt')}`;
   h += `<label class="f">Oprocentowanie % (opcjonalnie)</label><input id="arate" inputmode="decimal" placeholder="np. 5,5" value="${esc(rate)}">`;
-  h += `<div class="row2"><div><label class="f">Od</label><input type="date" id="astart" value="${esc(d.start || '')}"></div><div><label class="f">Do (koniec)${d.kind === 'lokata' || d.kind === 'obligacje' ? '' : ' – opcj.'}</label><input type="date" id="aend" value="${esc(d.end || '')}"></div></div>`;
+  if (!NODATE.includes(d.kind)) {
+    h += `<div class="row2"><div><label class="f">Od</label><input type="date" id="astart" value="${esc(d.start || '')}"></div><div><label class="f">Do (koniec)${d.kind === 'lokata' || d.kind === 'obligacje' ? '' : ' – opcj.'}</label><input type="date" id="aend" value="${esc(d.end || '')}"></div></div>`;
   h += `<label class="f">Przypomnij przed końcem</label><div class="chips">${[3, 7, 14, 30].map(n => `<button class="chip${(d.remind ?? 14) === n ? ' on' : ''}" data-act="aremind" data-v="${n}">${daysWord(n)}</button>`).join('')}</div>`;
+  }
   h += `<label class="f">Notatka</label><input id="anote" value="${esc(d.note || '')}" placeholder="np. odsetki na konto główne" maxlength="120">`;
   h += `<button class="btn" data-act="asave">${d.id ? 'Zapisz zmiany' : 'Dodaj'}</button>`;
   if (d.id && d.end) h += `<button class="btn sec" data-act="arenew">🔁 Odnów na ten sam okres</button>`;
@@ -861,6 +864,7 @@ async function assetAction(a) {
   if (a === 'akind') return;
   if (a === 'asave') {
     syncAsset();
+    if (NODATE.includes(d.kind)) { d.start = ''; d.end = ''; }
     const amount = parseZl(d.amountStr !== undefined ? d.amountStr : toInput(d.amount || 0));
     if (isNaN(amount) || amount < 0) { toast('Wpisz poprawną kwotę'); return; }
     const rate = d.rateStr ? Number(String(d.rateStr).replace(',', '.')) : 0;
@@ -1152,7 +1156,7 @@ function helpHtml() {
       <li>Przesunięcie usuwa/przenosi tylko tę jedną pozycję. Żeby usunąć powtarzanie, stuknij pozycję i użyj ikony <b>🗑</b> obok ✕ – wtedy wybierasz: tylko tę albo też przyszłe.</li></ul>`)
   + sec('✏️ Poprawianie i usuwanie', `<p>W zakładce <b>Historia</b> (albo w kategorii) stuknij operację – możesz zmienić kwotę, kategorię, datę, oznaczenie lub ją usunąć. Plan kategorii zmieniasz, stukając kategorię. Środki na start – stukając kafelek konta.</p><p><b>Kafelek konta</b> (np. konto żony) pokazuje wszystkie operacje z tego konta w miesiącu – stuknij, żeby poprawić kwotę. Przyciskiem <b>− Wydatek</b> dopiszesz wydatek od razu z tego konta, np. 10 zł na Życie – zmniejszy się stan tego konta i limit kategorii.</p><p><b>Zmiana kwoty o …</b> (zaplanowana płatność, wpływ, wydatek albo limit kategorii): stuknij pozycję lub kategorię, pod kwotą wpisz w polu „zmień o” np. 25,50 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b>, potem <b>Zapisz</b>. Przy pozycji powtarzającej się aplikacja zapyta, czy zmiana dotyczy tylko tego miesiąca, czy też kolejnych.</p><p><b>Korekta stanu konta</b> (gdy w banku jest inna kwota niż w aplikacji): w kafelku konta wpisz w polu „o ile” np. 9,20 i stuknij <b>− Odejmij</b> albo <b>+ Dodaj</b> – zapisze się od razu. Nie koryguj w ten sposób kwoty, którą już wpisałeś jako wydatek – odjęłaby się dwa razy. W każdym polu kwoty możesz też wpisać działanie, np. <b>185,09-9,20</b>.</p><p><b>Brakuje pieniędzy</b> (bilans na minusie, np. po wydatku ponad plan): stuknij <b>✂️ Zdejmij … z zaplanowanej kwoty</b> pod bilansem i wybierz zaplanowaną płatność (np. odłożenie na oszczędności) albo limit – brakująca kwota zostanie z niej zdjęta tylko w tym miesiącu. Zaplanowaną kwotę możesz też poprawić ręcznie: stuknij ją i dopisz w kwocie np. <b>-9,20</b>.</p><p>Najprościej od razu przy dodawaniu: w okienku nowego wydatku wybierz konto (<b>Z czyich pieniędzy</b>) i w <b>Zdejmij z zaplanowanej kwoty</b> wskaż płatność, np. odłożenie – zmniejszy się o kwotę wydatku (tylko w tym miesiącu), a bilans zostanie bez zmian. Wydatek z kategorii z limitem schodzi z limitu, więc tego wyboru wtedy nie ma.</p>`)
   + sec('🗑️ Czyszczenie miesiąca', `<p><b>Historia</b> → na dole <b>Wyczyść miesiąc</b>. Do wyboru: <b>usuń operacje</b> (plan i środki na start zostają) albo <b>wyczyść cały miesiąc</b> – w zakresie 13 miesięcy utworzy się on od nowa (z planem i powtarzającymi się pozycjami). Na koniec potwierdzasz PIN-em. Tego nie da się cofnąć – w razie wątpliwości najpierw wyślij raport. Płatności cykliczne z Ustawień zostają.</p>`)
-  + sec('💎 Mamy – lokaty, PPK, IKZE', `<ul><li>Zakładka <b>Mamy</b> to miejsce na oszczędności, które chcesz mieć na oku: lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe, gotówkę. Nie wpływają na budżet miesiąca.</li><li><b>+ Dodaj</b> → wybierz rodzaj, wpisz kwotę, bank, oprocentowanie i daty <b>od–do</b>. Przy lokacie aplikacja policzy szacowane odsetki netto (po 19% podatku).</li><li><b>Przypomnienie:</b> gdy do końca zostaje mniej dni niż ustawione (3, 7, 14 albo 30), na zakładce <b>Mamy</b> pojawia się czerwona kropka, a na górze komunikat ⏰. Kropka zostaje, dopóki nie odnowisz albo nie usuniesz pozycji.</li><li><b>🔁 Odnów na ten sam okres</b> – przesuwa daty o tyle samo dni; do wyboru z dopisaniem odsetek albo bez.</li><li>Kwotę (np. stan PPK) zaktualizujesz polem <b>zmień o</b> albo wpisując nową wartość.</li></ul>`)
+  + sec('💎 Mamy – lokaty, PPK, IKZE', `<ul><li>Zakładka <b>Mamy</b> to miejsce na oszczędności, które chcesz mieć na oku: lokaty, ROR (konto osobiste), fundusze, IKZE, PPK, IKE, obligacje, konta oszczędnościowe, gotówkę. Każdy rodzaj to osobna grupa oddzielona linią. Nie wpływają na budżet miesiąca.</li><li><b>+ Dodaj</b> → wybierz rodzaj, wpisz kwotę, bank, oprocentowanie i daty <b>od–do</b>. Przy lokacie aplikacja policzy szacowane odsetki netto (po 19% podatku).</li><li><b>Przypomnienie:</b> gdy do końca zostaje mniej dni niż ustawione (3, 7, 14 albo 30), na zakładce <b>Mamy</b> pojawia się czerwona kropka, a na górze komunikat ⏰. Kropka zostaje, dopóki nie odnowisz albo nie usuniesz pozycji.</li><li><b>🔁 Odnów na ten sam okres</b> – przesuwa daty o tyle samo dni; do wyboru z dopisaniem odsetek albo bez.</li><li>Kwotę (np. stan PPK) zaktualizujesz polem <b>zmień o</b> albo wpisując nową wartość.</li></ul>`)
   + sec('📤 Raport dla żony i kopia zapasowa', `<ul>
       <li><b>Historia</b> lub <b>Ustawienia → Wyślij raport</b> → wybierz Gmail/pocztę i wyślij sobie.</li>
       <li>Na komputerze otwórz załącznik dwuklikiem – w przeglądarce widać cały budżet (wszystkie miesiące) w trybie podglądu.</li>

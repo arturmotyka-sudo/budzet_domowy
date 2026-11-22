@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **5.4** – w Mamy osobne grupy oddzielone liniami: Lokaty, ROR (konto osobiste), Fundusze / akcje, IKZE, PPK (i pozostałe); dla ROR i gotówki bez dat końca.
 - **5.3** – rozwinięte sekcje w Pomocy (np. Aktualizacja) nie zwijają się po „Sprawdź ponownie”; komunikat z wynikiem sprawdzania.
 - **5.2** – nowa zakładka 💎 Mamy: lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe; podsumowanie „Razem mamy”, szacowane odsetki netto, przypomnienie przed końcem lokaty (kropka na zakładce), odnawianie lokaty.
 - **5.1** – sekcje na ekranie Budżet oddzielone kolorowymi liniami (jak w aplikacji Najem); nowa sekcja 📊 Statystyki (podział środków, najwięcej wydane, słupki miesięcy roku); w Historii dni oddzielone liniami.

@@ -1,8 +1,9 @@
 {
-  "version": "5.3",
+  "version": "5.4",
   "date": "2026-11-22",
   "changes": [
-    "Sekcja „Aktualizacja” (i inne w Pomocy) nie zwija się po „Sprawdź ponownie”",
-    "Po sprawdzeniu pojawia się komunikat: „Masz aktualną wersję” albo „Jest nowa wersja”"
+    "Mamy: nowa grupa 💳 ROR (konto osobiste)",
+    "Grupy w kolejności: Lokaty, ROR, Fundusze / akcje, IKZE, PPK – każda osobno, oddzielona linią",
+    "Dla ROR i gotówki nie trzeba podawać dat ani przypomnień"
   ]
 }
