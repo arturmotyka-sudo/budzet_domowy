@@ -404,7 +404,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.5';
+const APP_VERSION = '5.6';
 const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -635,14 +635,19 @@ function chain() {
   for (const m of monthKeys()) {
     const md = S.data.months[m];
     const carry = md.carry !== false && prev !== null;
-    const start = {};
+    const start = {}, rstart = {};
     if (carry) {
       for (const [w, v] of Object.entries(res[prev].end)) start[w] = v;
-      for (const [w, v] of Object.entries(md.adj || {})) start[w] = (start[w] || 0) + v;
-    } else Object.assign(start, md.start || {});
+      for (const [w, v] of Object.entries(res[prev].rend)) rstart[w] = v;
+      for (const [w, v] of Object.entries(md.adj || {})) { start[w] = (start[w] || 0) + v; rstart[w] = (rstart[w] || 0) + v; }
+    } else { Object.assign(start, md.start || {}); Object.assign(rstart, md.start || {}); }
     const c = calcFor(S.settings, {start, plan:md.plan}, (S.txBy || {})[m] || []);
-    const end = {}; for (const [w, x] of Object.entries(c.W)) end[w] = x.bal;
-    res[m] = {carry, prev: carry ? prev : null, start, end, c, carried: carry ? res[prev].end : null, adj: carry ? (md.adj || {}) : {}};
+    // „Na kontach” = prawdziwe pieniądze: start bez niezapłaconych pozycji z poprzednich miesięcy
+    const end = {}, rend = {};
+    for (const [w, x] of Object.entries(c.W)) { end[w] = x.bal; x.rstart = rstart[w] || 0; x.actual += x.rstart - x.start; rend[w] = x.actual; }
+    c.actualTotal = Object.values(c.W).reduce((s, x) => s + x.actual, 0);
+    c.rstartTotal = Object.values(c.W).reduce((s, x) => s + x.rstart, 0);
+    res[m] = {rend, carry, prev: carry ? prev : null, start, end, c, carried: carry ? res[prev].end : null, adj: carry ? (md.adj || {}) : {}};
     prev = m;
   }
   CH = {ver:S.ver, st:S.settings, res};
@@ -1175,6 +1180,7 @@ function helpHtml() {
       <span style="color:var(--vivid)"><b>0,00 zł</b></span><span>wszystko rozdzielone ✓</span></div><p></p>`, true)
   + sec('↪ Przenoszenie salda między miesiącami', `<ul>
       <li>Stan każdego konta na koniec miesiąca (po zaplanowanych pozycjach) <b>sam przechodzi</b> na start kolejnego – zarówno nadwyżka, jak i minus.</li>
+      <li><b>Na kontach</b> zawsze widzisz prawdziwe pieniądze – w każdym miesiącu ten sam stan, dopóki nie odhaczysz kolejnych wpływów i wydatków. Niezapłacone pozycje z poprzednich miesięcy widać w linii „po zaplanowanych”.</li>
       <li>Przeniesiona kwota zwiększa (albo przy minusie zmniejsza) <b>Do rozdysponowania</b> w nowym miesiącu – widać to pod bilansem: „↪ Przeniesione z…”.</li>
       <li>Gdy poprawisz coś w poprzednim miesiącu, kolejne przeliczą się automatycznie.</li>
       <li>Jeśli stan w banku jest inny, stuknij konto i wpisz właściwą kwotę – różnica zapisze się jako <b>korekta</b> i też będzie się przenosić dalej.</li></ul>`)
@@ -1364,7 +1370,7 @@ function openWallet(id) {
     <div class="row2" style="grid-template-columns:1fr auto auto;align-items:center;margin-top:8px"><input id="wdelta" inputmode="decimal" placeholder="o ile, np. 9,20"><button class="btn sec" style="margin:0;padding:12px 14px" data-act="wadj" data-v="-1">− Odejmij</button><button class="btn sec" style="margin:0;padding:12px 14px" data-act="wadj" data-v="1">+ Dodaj</button></div>
     ${carried !== null ? `<span class="hint">Przenosi się automatycznie. Zmień tylko, gdy stan w banku jest inny – różnica zapisze się jako korekta${w.start !== carried ? ` (teraz: ${w.start - carried > 0 ? '+' : '−'}${zl(Math.abs(w.start - carried))})` : ''}.</span>` : ''}<div class="card">`}
     <div class="kv"><span>Wpływy</span><b class="pos">+${zl(w.inc - w.pinc)}</b></div><div class="kv"><span>Wydatki</span><b>−${zl(w.spent - w.pexp)}</b></div><div class="kv"><span>Przelewy</span><b>${transfers >= 0 ? '+' : '−'}${zl(Math.abs(transfers))}</b></div>
-    ${w.pin ? `<div class="kv"><span>🕒 Spodziewane wpływy</span><b class="pos">+${zl(w.pin)}</b></div>` : ''}${w.pout ? `<div class="kv"><span>🕒 Zaplanowane płatności</span><b class="neg">−${zl(w.pout)}</b></div>` : ''}</div>
+    ${w.pin ? `<div class="kv"><span>🕒 Spodziewane wpływy</span><b class="pos">+${zl(w.pin)}</b></div>` : ''}${w.pout ? `<div class="kv"><span>🕒 Zaplanowane płatności</span><b class="neg">−${zl(w.pout)}</b></div>` : ''}${w.rstart !== undefined && w.rstart !== w.start ? `<div class="kv"><span>🕒 Niezapłacone z poprzednich miesięcy</span><b class="${w.rstart > w.start ? 'neg' : 'pos'}">${w.rstart > w.start ? '−' : '+'}${zl(Math.abs(w.rstart - w.start))}</b></div>` : ''}</div>
     ${S.readOnly ? '' : `<button class="btn" data-act="wsave">Zapisz środki na start</button>
     <div class="row2" style="grid-template-columns:1fr 1fr 1fr"><button class="btn sec" data-act="addtx" data-type="wydatek" data-wallet="${esc(id)}">− Wydatek</button><button class="btn sec" data-act="addtx" data-type="wplyw" data-wallet="${esc(id)}">+ Wpływ</button><button class="btn sec" data-act="addtx" data-type="przelew" data-wallet="${esc(id)}">🔁 Przelew</button></div>`}
     ${walletOpsHtml(id)}`,
@@ -1640,7 +1646,7 @@ function openRecon() {
       ${auto ? row('− Kategorie bez limitu (suma pozycji)', '−' + zl(auto)) : ''}
       ${row('<b>= Pozostało do rozdysponowania</b>', zl(c.toAssign), c.toAssign < 0 ? 'neg' : 'pos')}</div>
     <label class="f">Na kontach (prawdziwe pieniądze)</label><div class="card">
-      ${row('Na start', zl(c.startTotal))}
+      ${row('Na start', zl(c.rstartTotal ?? c.startTotal))}
       ${row('+ Wpływy otrzymane', '+' + zl(c.inc - incPlan), 'pos')}
       ${row('− Wydatki zapłacone', '−' + zl(paid))}
       ${row('<b>= Na kontach teraz</b>', zl(c.actualTotal))}
