@@ -163,6 +163,10 @@ p.sub{margin:6px 0}
 
 .banner.info{background:var(--acc2);color:var(--acc)}
 .banner button{border:0;background:none;color:inherit;font-weight:650;text-decoration:underline;padding:0;margin-left:4px}
+.banner button+button{margin-left:10px}
+.pay{margin:0 0 12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.phead{display:flex;align-items:baseline;gap:8px;cursor:pointer;font-size:14px}.phead>b{font-size:17px;margin-left:auto}.phead>.sub{white-space:nowrap}
+.prow{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;font-variant-numeric:tabular-nums}.prow>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prow small{color:var(--mute);font-weight:400}.prow b{white-space:nowrap;color:var(--ok)}.prow.tot{border-top:1px dashed var(--line);margin-top:2px}
 .hidden{display:none!important}
 :root{--orange:#e07b00}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--orange:#f59e0b}}
@@ -400,7 +404,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.4';
+const APP_VERSION = '5.5';
 const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -488,9 +492,14 @@ function subAll() {
     S.data = d; S.ver = (S.ver || 0) + 1;
     S.settings = d.settings || null; S.rules = d.rules || {}; S.assets = d.assets || {};
     const by = {}; for (const t of Object.values(d.tx)) (by[t.m] || (by[t.m] = [])).push(t);
-    S.txBy = by; subMonth(); render();
+    S.txBy = by;
+    if (!S.wmInit && !REPORT && d.settings) { S.wmInit = true; S.month = workMonth(); }
+    subMonth(); render();
   });
 }
+// zamknięty miesiąc (np. po wcześniejszej wypłacie) – pracujemy już na kolejnym
+const isClosed = m => !!(S.data && S.data.months[m] && S.data.months[m].closed);
+function workMonth() { let m = CUR; for (let i = 0; i < 24 && isClosed(m); i++) m = shiftMonth(m, 1); return m; }
 function subMonth() { S.monthDoc = (S.data && S.data.months[S.month]) || null; S.tx = ((S.txBy || {})[S.month] || []).slice(); }
 const monthKeys = () => Object.keys((S.data && S.data.months) || {}).sort();
 const prevMonthOf = m => { const k = monthKeys().filter(x => x < m); return k.length ? k[k.length - 1] : null; };
@@ -663,7 +672,7 @@ function renderHeader() {
   const showNav = S.settings && S.tab !== 'ustawienia' && S.tab !== 'pomoc' && S.tab !== 'mamy';
   const tb = `<button class="hbtn" data-act="theme" aria-label="${isDarkNow() ? 'Przełącz na jasny' : 'Przełącz na ciemny'}">${isDarkNow() ? '🌙' : '☀️'}</button>`;
   const html = showNav
-    ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div>${tb}`
+    ? `<div class="mnav"><button data-act="mprev" aria-label="Poprzedni miesiąc">‹</button><button class="lbl" data-act="mtoday">${isClosed(S.month) ? '🔒 ' : ''}${esc(monthLabel(S.month))}</button><button data-act="mnext" aria-label="Następny miesiąc">›</button></div>${tb}`
     : `<div class="htitle">${S.tab === 'mamy' && S.settings ? 'Mamy' : S.tab === 'pomoc' && S.settings ? 'Pomoc' : S.tab === 'ustawienia' && S.settings ? 'Ustawienia' : 'Budżet domowy'}</div>${tb}`;
   if (h.innerHTML !== html) h.innerHTML = html;
 }
@@ -736,7 +745,8 @@ function budgetHtml() {
   const msg = c.toAssign === 0 ? '✓ Bilans na zero – każda złotówka ma przydział'
             : c.toAssign > 0 ? 'Do rozdysponowania pozostało'
             : `Brakuje ${zl(-c.toAssign)} – zmniejsz plan albo dodaj wpływ`;
-  let h = `<div class="card hero ${cls}" data-act="recon" style="cursor:pointer"><div class="k" style="display:flex;justify-content:space-between">Pozostało do rozdysponowania<span class="sub" style="font-weight:400">ⓘ skąd?</span></div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}${c.toAssign < 0 && !S.readOnly ? `<button class="chip" style="display:block;margin:8px 0 0" data-act="cover">✂️ Zdejmij ${zl(-c.toAssign)} z zaplanowanej kwoty</button>` : ''}
+  let h = closedBanner();
+  h += `<div class="card hero ${cls}" data-act="recon" style="cursor:pointer"><div class="k" style="display:flex;justify-content:space-between">Pozostało do rozdysponowania<span class="sub" style="font-weight:400">ⓘ skąd?</span></div><div class="big">${zl(c.toAssign)}</div>${c.toAssign > 0 ? '' : `<div class="status">${msg}</div>`}${c.toAssign < 0 && !S.readOnly ? `<button class="chip" style="display:block;margin:8px 0 0" data-act="cover">✂️ Zdejmij ${zl(-c.toAssign)} z zaplanowanej kwoty</button>` : ''}
   <div class="stats"><div>Środki<b>${zl(c.funds)}</b></div><div>Plan<b>${zl(c.planTotal)}</b></div><div>Wydane<b>${zl(c.spent - c.plannedOut)}</b></div><div>Zostało<b class="${c.leftTotal < 0 ? 'neg' : ''}">${zl(c.leftTotal)}</b></div></div>${c.plannedOut ? `<div class="sub neg" style="margin-top:8px">🕒 Zaplanowane (do zapłaty): <b>${zl(c.plannedOut)}</b></div>` : ''}${carryLine()}</div>`;
   const byDate = (x, y) => (x.d || '').localeCompare(y.d || '') || (x.ts || 0) - (y.ts || 0);
   const isLimit = id => !!(c.C[id] && c.C[id].manual);
@@ -772,6 +782,7 @@ function budgetHtml() {
   const orph = Object.entries(c.C).filter(([, v]) => v.orphan && (v.plan || v.spent));
   if (orph.length) h += sep('❔ Operacje z usuniętych kategorii', '', 'var(--mute)') + `<div class="card list">${orph.map(([id, v]) => swWrap(catRow({id, name:'(usunięta kategoria) – stuknij, by uporządkować', emoji:'❔'}, v), 'sworph', id)).join('')}</div>`;
   if (!st.categories.length) h += `<div class="empty">Brak kategorii – dodaj je w Ustawieniach.</div>`;
+  if (!S.readOnly && S.month === CUR && !isClosed(S.month)) h += `<button class="btn sec" data-act="mclose" style="margin-top:22px">🔒 Zamknij ${esc(monthOnly(S.month))} – przejdź na ${esc(monthOnly(shiftMonth(S.month, 1)))}</button><p class="sub center" style="margin:6px 0 0">Wypłata przyszła przed końcem miesiąca? Zamknij go i planuj już kolejny.</p>`;
   return h;
 }
 /* ---------- 💎 Mamy: lokaty, PPK, IKZE… ---------- */
@@ -910,7 +921,7 @@ function statsHtml(c) {
   const whole = Math.max(c.funds, parts.reduce((s, p) => s + p[1], 0));
   const pct = v => whole > 0 ? Math.round(v / whole * 100) + '%' : '';
   let h = sep('📊 Statystyki', esc(cap(monthOnly(S.month))), 'var(--c-stat)');
-  h += `<div class="card">`;
+  h += `<div class="card">${payHtml(c)}`;
   if (!c.funds && !c.spent) return h + `<p class="sub" style="margin:0">Brak środków i wydatków w tym miesiącu.</p></div>`;
   const vis = parts.filter(p => p[1] > 0);
   if (vis.length) h += `<div class="sbar" role="img" aria-label="${esc(vis.map(p => p[0] + ' ' + zl(p[1])).join(', '))}">${vis.map(p => `<i style="flex:${p[1]};background:${p[2]}"></i>`).join('')}</div>`;
@@ -933,6 +944,74 @@ function statsHtml(c) {
   return h + `</div>`;
 }
 
+function closedBanner() {
+  if (!isClosed(S.month)) return '';
+  const nx = shiftMonth(S.month, 1);
+  return `<div class="banner info">🔒 Miesiąc zamknięty – to, co zostało, przeszło na ${esc(monthOnly(nx))}.${S.readOnly ? '' : `<button data-act="mopen">Otwórz</button>`}<button data-act="mjump" data-m="${nx}">${esc(cap(monthOnly(nx)))} ›</button></div>`;
+}
+/* zamknięcie miesiąca: niezapłacone → na następny miesiąc, potem pracujemy już na nim */
+function openClose() {
+  const m = S.month, nx = shiftMonth(m, 1), mi = monthInfo(m);
+  const todo = S.tx.filter(t => t.planned).sort((a, b) => (a.d || '').localeCompare(b.d || ''));
+  if (!S.closeSel) S.closeSel = new Set(todo.map(t => t.id));
+  const end = (mi ? Object.values(mi.end || {}).reduce((s, v) => s + v, 0) : 0) + todo.filter(t => S.closeSel.has(t.id)).reduce((s, t) => s + (t.type === 'wydatek' ? t.amount : t.type === 'wplyw' ? -t.amount : 0), 0);
+  let h = head(`🔒 Zamknij ${esc(monthOnly(m))}`);
+  h += `<p class="sub" style="margin-top:0">Na kontach zostaje <b>${zl(end)}</b> – przejdzie na start: <b>${esc(monthLabel(nx))}</b>. Niewydane pieniądze z limitów też przechodzą i w ${esc(monthOnly(nx))} będą do rozdysponowania.</p>`;
+  if (todo.length) {
+    h += `<label class="f">Niezapłacone / nieotrzymane – przenieś na ${esc(monthOnly(nx))}</label><div class="card list">${todo.map(t => { const i = txInfo(t), on = S.closeSel.has(t.id);
+      return `<button class="tx" data-act="mcpick" data-id="${esc(t.id)}"><span class="emo">${on ? '☑️' : '⬜'}</span><span class="cbody"><span class="cname" style="display:block">${esc(i.title)}${t.note ? ' · ' + esc(t.note) : ''}</span><span class="sub">${esc(fmtDate(t.d))}${on ? '' : ' · zostaje w: ' + esc(monthOnly(m))}</span></span><span class="amtv ${t.type === 'wplyw' ? 'pos' : 'neg'}">${zl(t.amount)}</span></button>`; }).join('')}</div>`;
+  } else h += `<p class="sub">Wszystkie płatności zapłacone ✓</p>`;
+  h += `<p class="sub">Wydatki z ostatnich dni zapisuj już w: ${esc(monthOnly(nx))} – data może być z miesiąca, który zamykasz. Miesiąc możesz w każdej chwili otworzyć z powrotem.</p>`;
+  h += `<button class="btn" data-act="mcdo">🔒 Zamknij i przejdź na ${esc(monthOnly(nx))}</button>`;
+  openSheet(h, {kind:'close'});
+}
+async function doClose() {
+  const m = S.month, nx = shiftMonth(m, 1), sel = S.closeSel || new Set();
+  const mv = S.tx.filter(t => t.planned && sel.has(t.id));
+  S.closeSel = null; closeSheet();
+  const ok = await write(store.batch(async () => {
+    for (const t of mv) {
+      const n = clone(t); n.m = nx; n.d = clampDay(nx, Number(t.d.slice(8))); n.mt = Date.now();
+      delete n.rule; delete n.copyOf; delete n.gen; delete n.override; delete n.wasPlanned;
+      await store.saveTx(n);
+    }
+    const md = clone(S.data.months[m] || {}); md.closed = Date.now(); await store.saveMonth(m, md);
+  }));
+  if (!ok) return;
+  setMonth(nx);
+  toast(`Zamknięto ${monthOnly(m)}${mv.length ? ` · przeniesiono ${mv.length} ${plural(mv.length, 'pozycję', 'pozycje', 'pozycji')}` : ''}`);
+}
+/* ⏳ dni do wypłaty i ile dziennie z limitów */
+function payInfo() {
+  const pd = S.settings && S.settings.payday; if (!pd) return null;
+  const date = clampDay(S.month, pd);
+  return {date, days:daysTo(date)};
+}
+function payHtml(c) {
+  if (S.month !== workMonth()) return '';
+  const p = payInfo();
+  let h = `<div class="pay">`;
+  if (!p) return S.readOnly ? '' : h + `<button class="chip" data-act="payday" style="border-style:dashed">⏳ Ustaw dzień wypłaty – policzę, ile dziennie możesz wydać</button></div>`;
+  const lim = S.settings.categories.filter(x => c.C[x.id] && c.C[x.id].manual);
+  if (p.days < 0) return h + `<div class="phead" data-act="payday"><span>⏳ Wypłata była</span><b>${esc(fmtDate(p.date))}</b><span class="sub">✎</span></div><p class="sub" style="margin:4px 0 0">Możesz zamknąć miesiąc (przycisk na dole) i planować kolejny.</p></div>`;
+  const left = Math.max(1, p.days);
+  h += `<div class="phead" data-act="payday"><span>⏳ Do wypłaty</span><b>${p.days === 0 ? 'dziś 🎉' : daysWord(p.days)}</b><span class="sub">${esc(fmtDate(p.date))} ✎</span></div>`;
+  if (!lim.length) return h + `<p class="sub" style="margin:4px 0 0">Ustaw limit na wydatki bieżące (np. Życie), a pokażę, ile możesz wydać dziennie.</p></div>`;
+  const rows = lim.map(x => { const cc = c.C[x.id], v = Math.max(0, cc.manual - cc.spent); return {x, v, day:Math.floor(v / left)}; });
+  h += rows.map(r => `<div class="prow"><span>${esc((r.x.emoji || '') + ' ' + r.x.name)}<small> · zostało ${zl(r.v)}</small></span><b>${zl(r.day)}<small> / dzień</small></b></div>`).join('');
+  if (rows.length > 1) { const tot = rows.reduce((s, r) => s + r.v, 0); h += `<div class="prow tot"><span>Razem<small> · ${zl(tot)}</small></span><b>${zl(Math.floor(tot / left))}<small> / dzień</small></b></div>`; }
+  return h + `<p class="sub" style="margin:4px 0 0">${p.days === 0 ? 'Na dziś.' : `Na ${daysWord(left)} – od dziś do dnia przed wypłatą.`}</p></div>`;
+}
+function openPayday() {
+  const pd = S.settings.payday || '';
+  let h = head('⏳ Dzień wypłaty');
+  h += `<p class="sub" style="margin-top:0">Którego dnia zwykle przychodzi pensja / emerytura? Aplikacja policzy, ile dni zostało i ile dziennie możesz wydać z limitów (np. Życie).</p>`;
+  h += `<label class="f">Dzień miesiąca (1–31)</label><input id="pday" type="number" inputmode="numeric" min="1" max="31" value="${esc(String(pd))}" placeholder="np. 27">`;
+  h += `<span class="hint">Jeśli w danym miesiącu przyjdzie wcześniej – zamknij miesiąc, a licznik przeskoczy na kolejny.</span>`;
+  h += `<button class="btn" data-act="pdsave">Zapisz</button>`;
+  if (pd) h += `<button class="btn sec" data-act="pdclear">Nie pokazuj</button>`;
+  openSheet(h, {kind:'payday'});
+}
 function carryLine() {
   const mi = monthInfo(S.month); if (!mi || !mi.carry) return '';
   const carried = Object.values(mi.carried).reduce((s, v) => s + v, 0);
@@ -1099,6 +1178,13 @@ function helpHtml() {
       <li>Przeniesiona kwota zwiększa (albo przy minusie zmniejsza) <b>Do rozdysponowania</b> w nowym miesiącu – widać to pod bilansem: „↪ Przeniesione z…”.</li>
       <li>Gdy poprawisz coś w poprzednim miesiącu, kolejne przeliczą się automatycznie.</li>
       <li>Jeśli stan w banku jest inny, stuknij konto i wpisz właściwą kwotę – różnica zapisze się jako <b>korekta</b> i też będzie się przenosić dalej.</li></ul>`)
+  + sec('🔒 Zamknij miesiąc (wcześniejsza wypłata)', `<ul>
+      <li>Pensja przyszła kilka dni przed końcem miesiąca? Na dole ekranu <b>Budżet</b> stuknij <b>🔒 Zamknij miesiąc</b>.</li>
+      <li>Zaznacz, które niezapłacone pozycje przenieść na kolejny miesiąc. To, co zostało na kontach (także niewydane z limitów), przechodzi na start kolejnego miesiąca – jak zawsze.</li>
+      <li>Aplikacja od razu przechodzi na nowy miesiąc i to on otwiera się po uruchomieniu. Wydatki z ostatnich dni zapisujesz już w nowym miesiącu – data może być z poprzedniego.</li>
+      <li>Spodziewaną pensję w nowym miesiącu oznacz <b>✓ Wpłynęło</b> – dostanie dzisiejszą datę. Przy dodawaniu wpływu możesz też wybrać <b>Zalicz do budżetu: następny miesiąc</b>.</li>
+      <li>Zamknięty miesiąc ma 🔒 i da się go w każdej chwili <b>Otworzyć</b>.</li></ul>`)
+  + sec('⏳ Ile dni do wypłaty i ile dziennie', `<p>W <b>📊 Statystykach</b> stuknij <b>Ustaw dzień wypłaty</b> (np. 27). Pokaże się, ile dni zostało do wypłaty i ile możesz wydać <b>dziennie</b> z każdej kategorii z limitem (np. Życie): to, co zostało w limicie, podzielone przez dni od dziś do dnia przed wypłatą. Po zamknięciu miesiąca licznik liczy do wypłaty w nowym miesiącu.</p>`)
   + sec('📅 Planowanie do przodu', `<ul>
       <li>Budżety <b>tworzą się same</b> na bieżący miesiąc i <b>13 kolejnych</b> (np. w listopadzie 2026 – do grudnia 2027). Gdy zaczyna się nowy miesiąc, kolejny dobudowuje się automatycznie.</li>
       <li>Nowy miesiąc powstaje <b>na wzór tego samego miesiąca rok wcześniej</b>: grudzień 2027 dostaje plan, wpływy i zaplanowane wydatki z grudnia 2026 (jednorazowe – jako zaplanowane). Kwota poprawiona „tylko w tym miesiącu” (np. grudniowa pensja) też przechodzi na kolejny rok.</li>
@@ -1286,7 +1372,7 @@ function openWallet(id) {
 }
 
 /* transaction sheet */
-function defaultDate() { const t = todayStr(); if (t.slice(0, 7) === S.month) return t; return S.month < CUR ? lastDay(S.month) : S.month + '-01'; }
+function defaultDate() { const t = todayStr(); if (t.slice(0, 7) === S.month) return t; if (t.slice(0, 7) === shiftMonth(S.month, -1) && isClosed(t.slice(0, 7))) return t; return S.month < CUR ? lastDay(S.month) : S.month + '-01'; }
 function openTx(o) {
   o = o || {};
   const wallets = S.settings.wallets;
@@ -1296,7 +1382,7 @@ function openTx(o) {
     const r = o.edit.rule && S.rules[o.edit.rule];
     S.txDraft = Object.assign({amountStr:toInput(o.edit.amount), repeat:ruleKey(r)}, clone(o.edit));
   } else {
-    S.txDraft = {id:null, type:o.type || 'wydatek', cat:o.cat || null, wallet:defW, to:null, amountStr:'', d:defaultDate(), note:'', planned:false, repeat:'none'};
+    S.txDraft = {id:null, m:S.month, type:o.type || 'wydatek', cat:o.cat || null, wallet:defW, to:null, amountStr:'', d:defaultDate(), note:'', planned:false, repeat:'none'};
   }
   if (S.txDraft.type === 'przelew' && !S.txDraft.to) S.txDraft.to = wallets.find(w => w.id !== S.txDraft.wallet)?.id || null;
   renderTxSheet(true);
@@ -1334,8 +1420,11 @@ function renderTxSheet(focus) {
   } else {
     h += `<label class="f">Z konta</label>${chipsW('wallet', t.wallet)}<label class="f">Na konto</label>${chipsW('to', t.to, t.wallet)}`;
   }
-  h += `<div class="row2"><div><label class="f">Data</label><input type="date" id="tdate" value="${esc(t.d)}" min="${S.month}-01" max="${lastDay(S.month)}"></div>
+  const tm = t.m || S.month, nm = shiftMonth(S.month, 1);
+  if (t.type === 'wplyw') h += `<label class="f">Zalicz do budżetu</label><div class="chips">${[S.month, nm].map(k => `<button class="chip${tm === k ? ' on' : ''}" data-act="pick" data-f="m" data-v="${k}">${esc(cap(monthOnly(k)))}</button>`).join('')}</div>${tm === nm ? `<span class="hint">Wpływ zasili budżet: <b>${esc(monthLabel(nm))}</b> (np. pensja przed końcem miesiąca).</span>` : ''}`;
+  h += `<div class="row2"><div><label class="f">Data</label><input type="date" id="tdate" value="${esc(t.d)}" min="${shiftMonth(S.month, -1)}-01" max="${lastDay(tm > S.month ? tm : S.month)}"></div>
         <div><label class="f">Notatka</label><input id="tnote" value="${esc(t.note || '')}" placeholder="np. OC auta" maxlength="80"></div></div>`;
+  if (t.d && t.d.slice(0, 7) !== tm && t.d.slice(0, 7) === shiftMonth(tm, -1)) h += `<span class="hint">📅 Data z: ${esc(monthLabel(t.d.slice(0, 7)))} – liczy się do budżetu: <b>${esc(monthLabel(tm))}</b>.</span>`;
   const inc = t.type === 'wplyw';
   h += `<button class="toggle${t.planned ? ' on' : ''}${inc ? ' g' : ''}" data-act="tplanned"><span><b>🕒 ${inc ? 'Spodziewany wpływ' : 'Zaplanowana'}</b><span class="sub">${inc ? 'jeszcze nie wpłynął' : 'zlecenie stałe / płatność do zrobienia – na czerwono'}</span></span><span class="sw"></span></button>`;
   h += `<label class="f">Powtarzaj</label><div class="chips">${REPEAT_OPTS.map(([k, l]) => `<button class="chip${t.repeat === k ? ' on' : ''}" data-act="trepeat" data-v="${k}">${l}</button>`).join('')}</div>`;
@@ -1358,7 +1447,8 @@ function validateDraft() {
   const t = S.txDraft;
   const amount = parseZl(t.amountStr);
   if (isNaN(amount) || amount <= 0) return 'Wpisz kwotę większą od zera';
-  if (!t.d || t.d.slice(0, 7) !== S.month) return 'Data musi być w miesiącu: ' + monthLabel(S.month);
+  const tm = t.m || S.month;
+  if (!t.d || (t.d.slice(0, 7) !== tm && t.d.slice(0, 7) !== shiftMonth(tm, -1))) return `Data musi być w: ${monthLabel(tm)} (albo pod koniec poprzedniego miesiąca)`;
   if (!t.wallet) return 'Wybierz konto';
   if (t.type === 'wydatek' && !t.cat) return 'Wybierz kategorię';
   if (t.type === 'przelew' && (!t.to || t.to === t.wallet)) return 'Wybierz drugie konto';
@@ -1366,7 +1456,7 @@ function validateDraft() {
 }
 function recFromDraft() {
   const t = S.txDraft;
-  const rec = {id:t.id || uid(), m:S.month, d:t.d, type:t.type, amount:parseZl(t.amountStr), wallet:t.wallet, note:(t.note || '').trim(), ts:t.ts || Date.now(), mt:Date.now()};
+  const rec = {id:t.id || uid(), m:t.m || S.month, d:t.d, type:t.type, amount:parseZl(t.amountStr), wallet:t.wallet, note:(t.note || '').trim(), ts:t.ts || Date.now(), mt:Date.now()};
   if (t.type === 'wydatek') rec.cat = t.cat;
   if (t.type === 'przelew') rec.to = t.to;
   if (t.planned) rec.planned = true;
@@ -1834,7 +1924,18 @@ document.addEventListener('click', async e => {
       S.tab = ds.tab; window.scrollTo(0, 0); render(); break;
     case 'mprev': setMonth(shiftMonth(S.month, -1)); break;
     case 'mnext': setMonth(shiftMonth(S.month, 1)); break;
-    case 'mtoday': setMonth(REPORT ? (REPORT.month || CUR) : CUR); break;
+    case 'mclose': S.closeSel = null; openClose(); break;
+    case 'mcpick': if (S.closeSel) { S.closeSel.has(ds.id) ? S.closeSel.delete(ds.id) : S.closeSel.add(ds.id); openClose(); } break;
+    case 'mcdo': await doClose(); break;
+    case 'mopen': { const md = clone(S.data.months[S.month] || {}); delete md.closed; if (await write(store.saveMonth(S.month, md))) toast(`Otwarto ${monthOnly(S.month)}`); break; }
+    case 'payday': openPayday(); break;
+    case 'pdsave': case 'pdclear': {
+      const v = ds.act === 'pdclear' ? 0 : Math.round(Number(($('#pday') || {}).value));
+      if (ds.act === 'pdsave' && !(v >= 1 && v <= 31)) { toast('Wpisz dzień od 1 do 31'); return; }
+      const st = clone(S.settings); if (v) st.payday = v; else delete st.payday;
+      closeSheet(); await write(store.saveSettings(st), v ? `Wypłata: ${v}. dnia miesiąca` : 'Ukryto licznik wypłaty'); break;
+    }
+    case 'mtoday': setMonth(REPORT ? (REPORT.month || CUR) : workMonth()); break;
     case 'theme': { lsSet('budzet-theme', isDarkNow() ? 'light' : 'dark'); applyTheme(); render(); if (S.tab === 'ustawienia') renderMain(true); break; }
     case 'settheme': lsSet('budzet-theme', ds.v); applyTheme(); render(); renderMain(true); break;
     case 'pinchange': lockOpen('change'); break;
@@ -1977,7 +2078,7 @@ document.addEventListener('click', async e => {
       break;
     }
 
-    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; n.wasPlanned = true; n.mt = Date.now(); await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
+    case 'paid': { const t = S.tx.find(x => x.id === ds.id); if (!t) return; const n = clone(t); delete n.planned; n.wasPlanned = true; n.mt = Date.now(); if (todayStr().slice(0, 7) === shiftMonth(t.m, -1)) n.d = todayStr(); await write(store.saveTx(n), t.type === 'wplyw' ? 'Oznaczono jako wpłynięte' : 'Oznaczono jako zapłacone'); break; }
 
     case 'addtx':
       if (!S.settings.wallets.length) { toast('Najpierw dodaj konto w Ustawieniach'); return; }
@@ -1987,7 +2088,7 @@ document.addEventListener('click', async e => {
       if (!t && store.allTx) { t = store.allTx().find(x => x.id === ds.id); if (t) { setMonth(t.m); t = S.tx.find(x => x.id === ds.id); } }
       if (t && !S.readOnly) openTx({edit:t}); break;
     }
-    case 'ttype': syncTxInputs(); S.txDraft.type = ds.v;
+    case 'ttype': syncTxInputs(); S.txDraft.type = ds.v; if (ds.v !== 'wplyw' && !S.txDraft.id) S.txDraft.m = S.month;
       if (ds.v === 'przelew' && (!S.txDraft.to || S.txDraft.to === S.txDraft.wallet)) S.txDraft.to = S.settings.wallets.find(w => w.id !== S.txDraft.wallet)?.id || null;
       renderTxSheet(false); break;
     case 'pick': syncTxInputs(); S.txDraft[ds.f] = ds.v;
@@ -2074,6 +2175,11 @@ document.addEventListener('click', async e => {
           n.amount -= cut; n.mt = Date.now(); if (n.rule) n.override = true;
           if (n.amount > 0) await store.saveTx(n); else await store.deleteTx(n.id);
           msg = `Dodano · zdjęto ${zl(cut)} z „${ci.title}${cov.note ? ' · ' + cov.note : ''}”`;
+        }
+        if (rec.m !== S.month) {
+          const dup = rec.type === 'wplyw' && rec.rule ? store.allTx().find(x => x.m === rec.m && x.rule === rec.rule && x.planned && x.id !== rec.id) : null;
+          if (dup) await store.deleteTx(dup.id);
+          msg += ` · liczy się do: ${monthLabel(rec.m)}${dup ? ' (zastąpiło spodziewany wpływ)' : ''}`;
         }
         await store.saveTx(rec);
       }), null);

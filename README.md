@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **5.5** – przycisk „🔒 Zamknij miesiąc” (wcześniejsza wypłata: niezapłacone przenoszą się na kolejny miesiąc, aplikacja pracuje już na nowym); wpływ można zaliczyć do następnego miesiąca; w Statystykach licznik dni do wypłaty i kwota dzienna z limitów.
 - **5.4** – w Mamy osobne grupy oddzielone liniami: Lokaty, ROR (konto osobiste), Fundusze / akcje, IKZE, PPK (i pozostałe); dla ROR i gotówki bez dat końca.
 - **5.3** – rozwinięte sekcje w Pomocy (np. Aktualizacja) nie zwijają się po „Sprawdź ponownie”; komunikat z wynikiem sprawdzania.
 - **5.2** – nowa zakładka 💎 Mamy: lokaty, PPK, IKZE, IKE, obligacje, konta oszczędnościowe; podsumowanie „Razem mamy”, szacowane odsetki netto, przypomnienie przed końcem lokaty (kropka na zakładce), odnawianie lokaty.

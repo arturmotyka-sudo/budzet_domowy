@@ -1,9 +1,9 @@
 {
-  "version": "5.4",
-  "date": "2026-11-22",
+  "version": "5.5",
+  "date": "2026-11-24",
   "changes": [
-    "Mamy: nowa grupa 💳 ROR (konto osobiste)",
-    "Grupy w kolejności: Lokaty, ROR, Fundusze / akcje, IKZE, PPK – każda osobno, oddzielona linią",
-    "Dla ROR i gotówki nie trzeba podawać dat ani przypomnień"
+    "🔒 Zamknij miesiąc – gdy wypłata przyjdzie przed końcem miesiąca; niezapłacone przenoszą się na kolejny",
+    "Wpływ można zaliczyć do budżetu następnego miesiąca",
+    "⏳ W Statystykach: ile dni do wypłaty i ile dziennie możesz wydać z limitów"
   ]
 }
