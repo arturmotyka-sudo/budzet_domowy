@@ -404,7 +404,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.6';
+const APP_VERSION = '5.7';
 const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -997,22 +997,31 @@ function payHtml(c) {
   const p = payInfo();
   let h = `<div class="pay">`;
   if (!p) return S.readOnly ? '' : h + `<button class="chip" data-act="payday" style="border-style:dashed">⏳ Ustaw dzień wypłaty – policzę, ile dziennie możesz wydać</button></div>`;
-  const lim = S.settings.categories.filter(x => c.C[x.id] && c.C[x.id].manual);
+  const did = dailyCatId(c), dc = did ? catById(did) : null, dcc = did ? c.C[did] : null;
   if (p.days < 0) return h + `<div class="phead" data-act="payday"><span>⏳ Wypłata była</span><b>${esc(fmtDate(p.date))}</b><span class="sub">✎</span></div><p class="sub" style="margin:4px 0 0">Możesz zamknąć miesiąc (przycisk na dole) i planować kolejny.</p></div>`;
   const left = Math.max(1, p.days);
   h += `<div class="phead" data-act="payday"><span>⏳ Do wypłaty</span><b>${p.days === 0 ? 'dziś 🎉' : daysWord(p.days)}</b><span class="sub">${esc(fmtDate(p.date))} ✎</span></div>`;
-  if (!lim.length) return h + `<p class="sub" style="margin:4px 0 0">Ustaw limit na wydatki bieżące (np. Życie), a pokażę, ile możesz wydać dziennie.</p></div>`;
-  const rows = lim.map(x => { const cc = c.C[x.id], v = Math.max(0, cc.manual - cc.spent); return {x, v, day:Math.floor(v / left)}; });
-  h += rows.map(r => `<div class="prow"><span>${esc((r.x.emoji || '') + ' ' + r.x.name)}<small> · zostało ${zl(r.v)}</small></span><b>${zl(r.day)}<small> / dzień</small></b></div>`).join('');
-  if (rows.length > 1) { const tot = rows.reduce((s, r) => s + r.v, 0); h += `<div class="prow tot"><span>Razem<small> · ${zl(tot)}</small></span><b>${zl(Math.floor(tot / left))}<small> / dzień</small></b></div>`; }
+  if (!dc || !dcc || !dcc.manual) return h + `<p class="sub" style="margin:4px 0 0">Ustaw limit na ${dc ? '<b>' + esc(dc.name) + '</b>' : 'wydatki na życie'}, a pokażę, ile możesz wydać dziennie.</p></div>`;
+  const v = Math.max(0, dcc.manual - dcc.spent);
+  h += `<div class="prow"><span>${esc((dc.emoji || '') + ' ' + dc.name)}<small> · zostało ${zl(v)}</small></span><b>${zl(Math.floor(v / left))}<small> / dzień</small></b></div>`;
   return h + `<p class="sub" style="margin:4px 0 0">${p.days === 0 ? 'Na dziś.' : `Na ${daysWord(left)} – od dziś do dnia przed wypłatą.`}</p></div>`;
 }
-function openPayday() {
-  const pd = S.settings.payday || '';
+// kategoria do liczenia „ile dziennie”: wybrana, a domyślnie Życie
+function dailyCatId(c) {
+  const cs = S.settings.categories, s = S.settings.dailyCat;
+  if (s && cs.some(x => x.id === s)) return s;
+  const z = cs.find(x => /życi|zyci/i.test(x.name)); if (z) return z.id;
+  const l = cs.find(x => c && c.C[x.id] && c.C[x.id].manual); return l ? l.id : null;
+}
+function openPayday(keep) {
+  const pd = keep && S.pdDay !== undefined ? S.pdDay : (S.settings.payday || '');
+  if (!keep) S.pdCat = dailyCatId(calc());
+  const c = calc(), cats = S.settings.categories.filter(x => x.id === S.pdCat || (c.C[x.id] && c.C[x.id].manual));
   let h = head('⏳ Dzień wypłaty');
-  h += `<p class="sub" style="margin-top:0">Którego dnia zwykle przychodzi pensja / emerytura? Aplikacja policzy, ile dni zostało i ile dziennie możesz wydać z limitów (np. Życie).</p>`;
+  h += `<p class="sub" style="margin-top:0">Którego dnia zwykle przychodzi pensja / emerytura? Aplikacja policzy, ile dni zostało i ile dziennie możesz wydać na życie.</p>`;
   h += `<label class="f">Dzień miesiąca (1–31)</label><input id="pday" type="number" inputmode="numeric" min="1" max="31" value="${esc(String(pd))}" placeholder="np. 27">`;
   h += `<span class="hint">Jeśli w danym miesiącu przyjdzie wcześniej – zamknij miesiąc, a licznik przeskoczy na kolejny.</span>`;
+  if (cats.length) h += `<label class="f">Licz dziennie dla</label><div class="chips">${cats.map(x => `<button class="chip${x.id === S.pdCat ? ' on' : ''}" data-act="pdcat" data-v="${esc(x.id)}">${esc((x.emoji || '') + ' ' + x.name)}</button>`).join('')}</div>`;
   h += `<button class="btn" data-act="pdsave">Zapisz</button>`;
   if (pd) h += `<button class="btn sec" data-act="pdclear">Nie pokazuj</button>`;
   openSheet(h, {kind:'payday'});
@@ -1190,7 +1199,7 @@ function helpHtml() {
       <li>Aplikacja od razu przechodzi na nowy miesiąc i to on otwiera się po uruchomieniu. Wydatki z ostatnich dni zapisujesz już w nowym miesiącu – data może być z poprzedniego.</li>
       <li>Spodziewaną pensję w nowym miesiącu oznacz <b>✓ Wpłynęło</b> – dostanie dzisiejszą datę. Przy dodawaniu wpływu możesz też wybrać <b>Zalicz do budżetu: następny miesiąc</b>.</li>
       <li>Zamknięty miesiąc ma 🔒 i da się go w każdej chwili <b>Otworzyć</b>.</li></ul>`)
-  + sec('⏳ Ile dni do wypłaty i ile dziennie', `<p>W <b>📊 Statystykach</b> stuknij <b>Ustaw dzień wypłaty</b> (np. 27). Pokaże się, ile dni zostało do wypłaty i ile możesz wydać <b>dziennie</b> z każdej kategorii z limitem (np. Życie): to, co zostało w limicie, podzielone przez dni od dziś do dnia przed wypłatą. Po zamknięciu miesiąca licznik liczy do wypłaty w nowym miesiącu.</p>`)
+  + sec('⏳ Ile dni do wypłaty i ile dziennie', `<p>W <b>📊 Statystykach</b> stuknij <b>Ustaw dzień wypłaty</b> (np. 27). Pokaże się, ile dni zostało do wypłaty i ile możesz wydać <b>dziennie na życie</b> (kategoria z limitem, np. Życie – inną można wybrać w tym samym okienku): to, co zostało w limicie, podzielone przez dni od dziś do dnia przed wypłatą. Po zamknięciu miesiąca licznik liczy do wypłaty w nowym miesiącu.</p>`)
   + sec('📅 Planowanie do przodu', `<ul>
       <li>Budżety <b>tworzą się same</b> na bieżący miesiąc i <b>13 kolejnych</b> (np. w listopadzie 2026 – do grudnia 2027). Gdy zaczyna się nowy miesiąc, kolejny dobudowuje się automatycznie.</li>
       <li>Nowy miesiąc powstaje <b>na wzór tego samego miesiąca rok wcześniej</b>: grudzień 2027 dostaje plan, wpływy i zaplanowane wydatki z grudnia 2026 (jednorazowe – jako zaplanowane). Kwota poprawiona „tylko w tym miesiącu” (np. grudniowa pensja) też przechodzi na kolejny rok.</li>
@@ -1935,10 +1944,11 @@ document.addEventListener('click', async e => {
     case 'mcdo': await doClose(); break;
     case 'mopen': { const md = clone(S.data.months[S.month] || {}); delete md.closed; if (await write(store.saveMonth(S.month, md))) toast(`Otwarto ${monthOnly(S.month)}`); break; }
     case 'payday': openPayday(); break;
+    case 'pdcat': S.pdDay = ($('#pday') || {}).value; S.pdCat = ds.v; openPayday(true); break;
     case 'pdsave': case 'pdclear': {
       const v = ds.act === 'pdclear' ? 0 : Math.round(Number(($('#pday') || {}).value));
       if (ds.act === 'pdsave' && !(v >= 1 && v <= 31)) { toast('Wpisz dzień od 1 do 31'); return; }
-      const st = clone(S.settings); if (v) st.payday = v; else delete st.payday;
+      const st = clone(S.settings); if (v) st.payday = v; else delete st.payday; if (v && S.pdCat) st.dailyCat = S.pdCat; S.pdDay = undefined;
       closeSheet(); await write(store.saveSettings(st), v ? `Wypłata: ${v}. dnia miesiąca` : 'Ukryto licznik wypłaty'); break;
     }
     case 'mtoday': setMonth(REPORT ? (REPORT.month || CUR) : workMonth()); break;

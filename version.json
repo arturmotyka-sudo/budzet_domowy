@@ -1,8 +1,7 @@
 {
-  "version": "5.6",
+  "version": "5.7",
   "date": "2026-11-24",
   "changes": [
-    "„Na kontach” pokazuje ten sam, prawdziwy stan konta niezależnie od oglądanego miesiąca",
-    "Niezapłacone pozycje z poprzednich miesięcy widać w „po zaplanowanych” i w szczegółach konta"
+    "⏳ Kwota dzienna w Statystykach liczona tylko na życie (inną kategorię można wybrać w okienku dnia wypłaty)"
   ]
 }
