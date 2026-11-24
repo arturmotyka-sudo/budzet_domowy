@@ -404,7 +404,7 @@ const ICON_PICK = [
   ['Czas wolny', ['🎬','🎮','🏋️','🎨','📚','🎓','🏨','🎵','⚽','🎟️']],
   ['Pieniądze', ['🐷','📈','🛟','💵','🪙','💰','🤝','📦','🏷️','⭐']]
 ];
-const APP_VERSION = '5.7';
+const APP_VERSION = '5.8';
 const APP_DATE = '2026-11-22';
 const verNum = v => String(v || '0').split('.').map(Number);
 const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -934,10 +934,10 @@ function statsHtml(c) {
     ${parts.map(p => `<div class="lrow"><span class="swc" style="background:${p[2]}"></span><span>${p[0]}</span><b>${zl(p[1])}</b><span class="sub">${pct(p[1])}</span></div>`).join('')}</div>`;
   if (c.toAssign < 0) h += `<p class="sub neg" style="margin:8px 0 0">Plan jest większy niż środki o ${zl(-c.toAssign)}.</p>`;
   // najwięcej wydane – kategorie
-  const top = S.settings.categories.map(x => ({x, v:(c.C[x.id] || {}).spent || 0, lim:(c.C[x.id] || {}).manual || 0})).filter(o => o.v > 0).sort((a, b) => b.v - a.v).slice(0, 5);
+  const top = S.settings.categories.map(x => ({x, v:((c.C[x.id] || {}).spent || 0) - ((c.C[x.id] || {}).planned || 0), lim:(c.C[x.id] || {}).manual || 0})).filter(o => o.v > 0).sort((a, b) => b.v - a.v).slice(0, 5);
   if (top.length) {
     const mx = Math.max(...top.map(o => Math.max(o.v, o.lim)));
-    h += `<div class="sub" style="margin:14px 0 4px;padding-top:10px;border-top:1px solid var(--line)">Najwięcej wydane (z zaplanowanymi)</div>`;
+    h += `<div class="sub" style="margin:14px 0 4px;padding-top:10px;border-top:1px solid var(--line)">Najwięcej wydane (zapłacone)</div>`;
     h += top.map(o => `<div class="trow"><span>${esc((o.x.emoji || '') + ' ' + o.x.name)}${o.lim ? `<small> · limit ${zl(o.lim)}</small>` : ''}</span><span class="tbar"><i style="width:${Math.round(o.v / mx * 100)}%;background:${o.lim && o.v > o.lim ? 'var(--c-pay)' : 'var(--c-stat)'}"></i>${o.lim ? `<em style="left:${Math.min(100, Math.round(o.lim / mx * 100))}%"></em>` : ''}</span><b>${zl(o.v)}</b></div>`).join('');
   }
   // rok: wydatki w kolejnych miesiącach
@@ -1249,7 +1249,7 @@ function helpHtml() {
       <li>W <b>Historii</b> na górze są operacje, które dodałeś lub poprawiłeś – <b>najnowsze na górze</b>, pogrupowane: Dziś, Wczoraj…, z godziną dodania/edycji.</li>
       <li>Na dole – pozycje <b>dodane automatycznie</b> (powtarzające się).</li>
       <li><b>🔍 Szukaj</b> przeszukuje wszystkie miesiące: wpisz nazwę, kategorię, kwotę albo notatkę (np. „prąd”, „326”, „Orlen”). Stuknięcie wyniku otwiera go w jego miesiącu.</li></ul>`)
-  + sec('🧮 Skąd biorą się kwoty', `<p><b>📊 Statystyki</b> (pod kontami): kolorowy pasek pokazuje, na co idą środki miesiąca – wydane, do zapłaty, zostało w limitach, do rozdysponowania. Niżej kategorie, na które wydajesz najwięcej (kreska = limit), i słupki wydatków w kolejnych miesiącach roku – zielona kreska to wpływy. Stuknij słupek, żeby przejść do miesiąca.</p><p><b>Zmiana miesiąca:</b> przeciągnij palcem po karcie <b>Pozostało do rozdysponowania</b> albo po kontach – w lewo następny miesiąc, w prawo poprzedni.</p><p>Stuknij kartę <b>Pozostało do rozdysponowania</b> – zobaczysz rozliczenie: start + wpływy (otrzymane i spodziewane) − plan = pozostało, oraz osobno: ile jest naprawdę na kontach i ile będzie po zaplanowanych.</p>
+  + sec('🧮 Skąd biorą się kwoty', `<p><b>📊 Statystyki</b> (pod kontami): kolorowy pasek pokazuje, na co idą środki miesiąca – wydane, do zapłaty, zostało w limitach, do rozdysponowania. Niżej kategorie, na które wydałeś najwięcej – liczą się tylko zapłacone, zaplanowane dopiero po „✓ Zapłacone” (kreska = limit), i słupki wydatków w kolejnych miesiącach roku – zielona kreska to wpływy. Stuknij słupek, żeby przejść do miesiąca.</p><p><b>Zmiana miesiąca:</b> przeciągnij palcem po karcie <b>Pozostało do rozdysponowania</b> albo po kontach – w lewo następny miesiąc, w prawo poprzedni.</p><p>Stuknij kartę <b>Pozostało do rozdysponowania</b> – zobaczysz rozliczenie: start + wpływy (otrzymane i spodziewane) − plan = pozostało, oraz osobno: ile jest naprawdę na kontach i ile będzie po zaplanowanych.</p>
       <p>Każda pozycja jest tylko w jednym miejscu: wpływy w <b>💵 Wpływy</b>, znane kwoty w <b>🧾 Płatności</b>, wydatki z kategorii z limitem w <b>🛒 Wydatki z limitem</b> (zaplanowana pozycja w kategorii z limitem pokazuje się też w Płatnościach, żeby można było stuknąć ✓).</p>`)
   + sec('🗑 Usuwanie i przenoszenie z ekranu Budżet', `<ul>
       <li><b>Przesuń pozycję palcem w lewo</b> – pojawi się czerwony przycisk <b>🗑 Usuń</b>. Usuwa od razu, bez pytań – przez kilka sekund na dole jest <b>Cofnij</b>. W Wydatkach z limitem usuwa limit (wydatki przechodzą do Płatności).</li>

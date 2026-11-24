@@ -70,6 +70,7 @@ Ikonę na ekranie głównym Chrome podmienia sam, ale z opóźnieniem (do doby; 
 
 ## Historia wersji
 
+- **5.8** – „Najwięcej wydane” w Statystykach liczy tylko zapłacone (zaplanowane dopiero po oznaczeniu ✓).
 - **5.7** – w Statystykach kwota dzienna liczona tylko dla jednej kategorii (domyślnie Życie, do zmiany w okienku dnia wypłaty).
 - **5.6** – „Na kontach” pokazuje prawdziwy stan konta w każdym miesiącu (niezapłacone pozycje z poprzednich miesięcy nie zmniejszają go z góry; widać je w „po zaplanowanych”).
 - **5.5** – przycisk „🔒 Zamknij miesiąc” (wcześniejsza wypłata: niezapłacone przenoszą się na kolejny miesiąc, aplikacja pracuje już na nowym); wpływ można zaliczyć do następnego miesiąca; w Statystykach licznik dni do wypłaty i kwota dzienna z limitów.

@@ -1,7 +1,7 @@
 {
-  "version": "5.7",
+  "version": "5.8",
   "date": "2026-11-24",
   "changes": [
-    "⏳ Kwota dzienna w Statystykach liczona tylko na życie (inną kategorię można wybrać w okienku dnia wypłaty)"
+    "„Najwięcej wydane” w Statystykach liczy tylko zapłacone – zaplanowane dopiero po oznaczeniu ✓ Zapłacone"
   ]
 }
